@@ -1,0 +1,1893 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestion d'Élevage de Volaille (MAD)</title>
+<style>
+  :root {
+    --primary: #2d6a4f; --primary-dark: #1b4332; --accent: #d4a373;
+    --danger: #c1121f; --warning: #f4a261; --success: #52b788;
+    --bg: #fefae0; --card: #ffffff; --text: #1b1b1b;
+    --muted: #6c757d; --border: #e9ecef;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  .login-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); display: flex; justify-content: center; align-items: center; z-index: 9999; padding: 1rem; }
+  .login-overlay.hidden { display: none; }
+  .login-box { background: white; padding: 2.5rem; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); max-width: 400px; width: 100%; text-align: center; }
+  .login-box .lock-icon { font-size: 4rem; margin-bottom: 1rem; }
+  .login-box h2 { color: var(--primary-dark); margin-bottom: 0.5rem; border: none; padding: 0; }
+  .login-box p { color: var(--muted); margin-bottom: 1.5rem; font-size: 0.9rem; }
+  .login-box input { width: 100%; padding: 0.8rem; border: 2px solid var(--border); border-radius: 8px; font-size: 1rem; margin-bottom: 1rem; }
+  .login-box input:focus { outline: none; border-color: var(--primary); }
+  .login-box .error-msg { color: var(--danger); font-size: 0.85rem; margin-bottom: 1rem; min-height: 1.2rem; }
+  .login-box button { width: 100%; padding: 0.8rem; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: 500; cursor: pointer; }
+  .login-box button:hover { background: var(--primary-dark); }
+  .login-box .forgot-link { display: block; margin-top: 1rem; color: var(--muted); font-size: 0.85rem; cursor: pointer; text-decoration: underline; }
+  .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 1rem; }
+  .modal-overlay.hidden { display: none; }
+  .modal-box { background: white; padding: 2rem; border-radius: 12px; max-width: 500px; width: 100%; max-height: 90vh; overflow-y: auto; }
+  .modal-box h3 { color: var(--primary-dark); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--accent); }
+  .modal-box .close-btn { float: right; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--muted); }
+  .settings-item { padding: 1rem; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 0.8rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+  .settings-item .info { flex: 1; }
+  .settings-item .info h4 { color: var(--primary-dark); font-size: 0.95rem; margin-bottom: 0.2rem; }
+  .settings-item .info p { color: var(--muted); font-size: 0.85rem; }
+  .status-badge { display: inline-block; padding: 0.3rem 0.8rem; border-radius: 12px; font-size: 0.8rem; font-weight: 500; }
+  .status-badge.active { background: #d4edda; color: #155724; }
+  .status-badge.inactive { background: #f8d7da; color: #721c24; }
+  header { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; padding: 1.2rem 2rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+  header h1 { font-size: 1.5rem; }
+  header .actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  nav { background: var(--card); display: flex; flex-wrap: wrap; border-bottom: 2px solid var(--border); padding: 0 1rem; position: sticky; top: 0; z-index: 10; overflow-x: auto; }
+  nav button { background: none; border: none; padding: 1rem; cursor: pointer; font-size: 0.9rem; color: var(--text); border-bottom: 3px solid transparent; transition: all 0.2s; font-weight: 500; white-space: nowrap; }
+  nav button:hover { background: #f8f9fa; }
+  nav button.active { color: var(--primary); border-bottom-color: var(--primary); }
+  main { padding: 1.5rem; max-width: 1400px; margin: 0 auto; }
+  .section { display: none; }
+  .section.active { display: block; animation: fade 0.3s; }
+  @keyframes fade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  h2 { color: var(--primary-dark); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--accent); }
+  h3 { color: var(--primary); margin: 1rem 0 0.5rem; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+  .card { background: var(--card); padding: 1.2rem; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); border-left: 4px solid var(--primary); }
+  .card h4 { color: var(--muted); font-size: 0.85rem; text-transform: uppercase; margin-bottom: 0.5rem; }
+  .card .value { font-size: 1.8rem; font-weight: bold; color: var(--primary-dark); }
+  .card.accent { border-left-color: var(--accent); }
+  .card.success { border-left-color: var(--success); }
+  .card.danger { border-left-color: var(--danger); }
+  .card.warning { border-left-color: var(--warning); }
+  .card.info { border-left-color: #0dcaf0; }
+  .card.cash { border-left-color: #2a9d8f; }
+  .card.feed { border-left-color: #e9c46a; }
+  form { background: var(--card); padding: 1.2rem; border-radius: 10px; margin-bottom: 1.5rem; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
+  .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.8rem; margin-bottom: 0.8rem; }
+  label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 0.3rem; font-weight: 500; }
+  input, select, textarea { width: 100%; padding: 0.6rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; font-family: inherit; }
+  input:focus, select:focus { outline: none; border-color: var(--primary); }
+  button.btn { background: var(--primary); color: white; border: none; padding: 0.7rem 1.3rem; border-radius: 6px; cursor: pointer; font-size: 0.95rem; font-weight: 500; transition: all 0.2s; }
+  button.btn:hover { background: var(--primary-dark); transform: translateY(-1px); }
+  button.btn.accent { background: var(--accent); }
+  button.btn.demo { background: #6f42c1; }
+  button.btn.danger { background: var(--danger); }
+  button.btn.warning { background: var(--warning); }
+  button.btn.info { background: #0dcaf0; color: #000; }
+  button.btn.settings { background: #6c757d; }
+  button.btn.pdf { background: #c1121f; }
+  button.btn.pdf:hover { background: #8b0d14; }
+  button.btn.small { padding: 0.3rem 0.7rem; font-size: 0.8rem; }
+  table { width: 100%; background: var(--card); border-collapse: collapse; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.05); margin-bottom: 1rem; }
+  th, td { padding: 0.8rem; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+  th { background: var(--primary); color: white; font-weight: 500; }
+  tr:hover { background: #f8f9fa; }
+  .table-wrap { overflow-x: auto; }
+  .badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.75rem; font-weight: 500; }
+  .badge.poule { background: #ffe5d9; color: #b5651d; }
+  .badge.coq { background: #d9edff; color: #1d4e89; }
+  .badge.dinde { background: #e5d9ff; color: #6a1d98; }
+  .badge.dindon { background: #d9ffe5; color: #1d9856; }
+  .badge.poussin { background: #fff9c4; color: #8a6d00; }
+  .badge.dindonneau { background: #e0f7fa; color: #006064; }
+  .badge.casse { background: #f8d7da; color: #721c24; }
+  .badge.cadeau { background: #d1ecf1; color: #0c5460; }
+  .empty { text-align: center; padding: 2rem; color: var(--muted); font-style: italic; }
+  .info-box { background: #e7f5ef; border-left: 4px solid var(--success); padding: 0.8rem 1rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.9rem; }
+  .info-box.warning { background: #fff3cd; border-left-color: var(--warning); }
+  .info-box.info { background: #e0f7fa; border-left-color: #0dcaf0; }
+  .info-box.danger { background: #f8d7da; border-left-color: var(--danger); }
+  .progress { width: 100%; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; margin-top: 0.3rem; }
+  .progress-bar { height: 100%; background: var(--success); transition: width 0.3s; }
+  .range-info { font-size: 0.8rem; color: var(--muted); margin-top: 0.2rem; }
+  .actions-cell { display: flex; gap: 0.3rem; flex-wrap: wrap; }
+  .start-hero { background: linear-gradient(135deg, #2d6a4f, #52b788); color: white; padding: 2rem; border-radius: 12px; margin-bottom: 1.5rem; text-align: center; }
+  .start-hero h2 { color: white; border: none; margin-bottom: 0.5rem; }
+  .animal-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+  .animal-input-card { background: var(--card); padding: 1.2rem; border-radius: 10px; border-left: 5px solid var(--primary); box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
+  .animal-input-card.eggs { border-left-color: var(--warning); }
+  .animal-input-card.incub { border-left-color: #e76f51; }
+  .animal-input-card.cash { border-left-color: #2a9d8f; }
+  .animal-input-card h4 { font-size: 1.1rem; margin-bottom: 0.8rem; color: var(--primary-dark); }
+  .animal-input-card .emoji { font-size: 1.5rem; margin-right: 0.5rem; }
+  .summary-box { background: #e7f5ef; border: 2px dashed var(--success); padding: 1rem; border-radius: 10px; margin-top: 1rem; }
+  .summary-line { display: flex; justify-content: space-between; padding: 0.3rem 0; border-bottom: 1px dotted var(--border); }
+  .btn-group { display: flex; gap: 0.8rem; flex-wrap: wrap; margin-top: 1rem; }
+  .section-separator { background: linear-gradient(90deg, var(--accent), transparent); height: 2px; margin: 1.5rem 0 1rem; border-radius: 2px; }
+  .ingredient-row { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem; padding: 0.5rem; background: #f8f9fa; border-radius: 6px; flex-wrap: wrap; }
+  .ingredient-row select, .ingredient-row input { flex: 1; min-width: 100px; }
+  .dist-summary { background: linear-gradient(135deg, #fff3cd, #ffe5b4); border: 2px solid var(--warning); border-radius: 10px; padding: 1rem; margin-top: 1rem; }
+  .dist-summary h4 { color: var(--primary-dark); margin-bottom: 0.5rem; }
+  .dist-summary .line { display: flex; justify-content: space-between; padding: 0.4rem 0; border-bottom: 1px dotted rgba(0,0,0,0.1); }
+  .dist-summary .line:last-child { border: none; font-weight: bold; font-size: 1.05rem; padding-top: 0.6rem; margin-top: 0.3rem; border-top: 2px solid var(--primary); }
+  .dist-summary .warn { color: var(--danger); font-size: 0.85rem; margin-top: 0.5rem; }
+  .period-selector { background: var(--card); padding: 1.2rem; border-radius: 10px; margin-bottom: 1.5rem; box-shadow: 0 2px 6px rgba(0,0,0,0.05); border-left: 4px solid var(--accent); }
+  .period-buttons { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.8rem; }
+  .period-buttons button { background: #f8f9fa; border: 1px solid var(--border); padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.9rem; transition: all 0.2s; }
+  .period-buttons button:hover { background: #e9ecef; }
+  .period-buttons button.active { background: var(--primary); color: white; border-color: var(--primary); }
+  .custom-dates { display: none; gap: 0.8rem; margin-top: 0.8rem; }
+  .custom-dates.show { display: grid; grid-template-columns: 1fr 1fr auto; align-items: end; }
+  .period-info { background: #e7f5ef; padding: 0.6rem 1rem; border-radius: 6px; margin-top: 0.8rem; font-size: 0.9rem; color: var(--primary-dark); }
+  .bilan-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem; }
+  
+  /* ===== HISTOGRAMME CORRIGÉ ===== */
+  .chart-container {
+    background: var(--card);
+    padding: 1.5rem;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    margin-bottom: 1.5rem;
+    border-left: 4px solid var(--warning);
+  }
+  .chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+  .chart-legend {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .legend-color {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+  }
+  .legend-color.poule { background: #f4a261; }
+  .legend-color.dinde { background: #9d4edd; }
+  .chart-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.8rem;
+    margin-bottom: 1rem;
+  }
+  .chart-stat {
+    background: #f8f9fa;
+    padding: 0.8rem;
+    border-radius: 8px;
+    text-align: center;
+    border-left: 3px solid var(--primary);
+  }
+  .chart-stat h5 {
+    font-size: 0.75rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 0.3rem;
+  }
+  .chart-stat .val {
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: var(--primary-dark);
+  }
+  .chart-stat.success { border-left-color: var(--success); }
+  .chart-stat.warning { border-left-color: var(--warning); }
+  .chart-stat.info { border-left-color: #0dcaf0; }
+  .chart-stat.danger { border-left-color: var(--danger); }
+  
+  .chart-wrapper {
+    position: relative;
+    height: 320px;
+    padding: 10px 0 40px 45px;
+    border-left: 2px solid var(--border);
+    border-bottom: 2px solid var(--border);
+    background: #fafafa;
+    border-radius: 0 0 8px 0;
+  }
+  .y-axis {
+    position: absolute;
+    left: 0;
+    top: 10px;
+    bottom: 40px;
+    width: 45px;
+    display: flex;
+    flex-direction: column-reverse;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+  .y-axis span {
+    text-align: right;
+    padding-right: 5px;
+  }
+  .chart-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 100%;
+    overflow-x: auto;
+  }
+  .bar-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    min-width: 28px;
+    max-width: 50px;
+    height: 100%;
+    position: relative;
+    justify-content: flex-end;
+  }
+  .bar-stack {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    align-items: center;
+    justify-content: flex-end;
+    position: relative;
+  }
+  .bar {
+    width: 75%;
+    transition: all 0.3s;
+    cursor: pointer;
+    position: relative;
+    border-radius: 3px 3px 0 0;
+    min-height: 2px;
+  }
+  .bar.poule { background: linear-gradient(to top, #e76f51, #f4a261); }
+  .bar.dinde { background: linear-gradient(to top, #7b2cbf, #9d4edd); }
+  .bar:hover { opacity: 0.8; transform: translateY(-2px); }
+  .bar-label {
+    position: absolute;
+    bottom: -32px;
+    font-size: 0.7rem;
+    color: var(--muted);
+    transform: rotate(-45deg);
+    transform-origin: top left;
+    white-space: nowrap;
+  }
+  .bar-tooltip {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--primary-dark);
+    color: white;
+    padding: 0.5rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    pointer-events: none;
+  }
+  .bar-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: var(--primary-dark);
+  }
+  .bar-group:hover .bar-tooltip { display: block; }
+  .chart-no-data {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--muted);
+    font-style: italic;
+    width: 100%;
+    font-size: 1rem;
+  }
+  
+  @media (max-width: 600px) { header h1 { font-size: 1.2rem; } nav button { padding: 0.8rem 0.6rem; font-size: 0.8rem; } main { padding: 1rem; } .chart-wrapper { height: 260px; } }
+</style>
+</head>
+<body>
+
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-box">
+    <div class="lock-icon">🔐</div>
+    <h2>Accès sécurisé</h2>
+    <p>Entrez votre mot de passe pour accéder à l'application</p>
+    <input type="password" id="loginPassword" placeholder="Mot de passe" onkeypress="if(event.key==='Enter') login()">
+    <div class="error-msg" id="loginError"></div>
+    <button onclick="login()">🔓 Se connecter</button>
+    <span class="forgot-link" onclick="forgotPassword()">Mot de passe oublié ?</span>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="settingsModal">
+  <div class="modal-box">
+    <button class="close-btn" onclick="closeSettings()">×</button>
+    <h3>⚙️ Paramètres de sécurité</h3>
+    <div class="settings-item">
+      <div class="info"><h4>État de la protection</h4><p id="authStatus">Protection inactive</p></div>
+      <span class="status-badge inactive" id="authBadge">INACTIF</span>
+    </div>
+    <div class="settings-item">
+      <div class="info"><h4>🔑 Définir / Changer le mot de passe</h4><p>Protéger l'accès</p></div>
+      <button class="btn small" onclick="changePassword()">Modifier</button>
+    </div>
+    <div class="settings-item">
+      <div class="info"><h4>🔓 Supprimer le mot de passe</h4><p>Désactiver la protection</p></div>
+      <button class="btn small danger" onclick="removePassword()">Supprimer</button>
+    </div>
+    <div class="settings-item">
+      <div class="info"><h4>🚪 Verrouiller l'application</h4><p>Se déconnecter</p></div>
+      <button class="btn small warning" onclick="lockApp()">Verrouiller</button>
+    </div>
+  </div>
+</div>
+
+<header>
+  <h1>🐔 Gestion d'Élevage de Volaille</h1>
+  <div class="actions">
+    <button class="btn settings" onclick="openSettings()">⚙️ Paramètres</button>
+    <button class="btn demo" onclick="loadDemo()">📋 Démo</button>
+    <button class="btn accent" onclick="exportData()">📥 Exporter</button>
+    <button class="btn accent" onclick="document.getElementById('importFile').click()">📤 Importer</button>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+    <button class="btn danger" onclick="resetData()">🗑️ Réinitialiser</button>
+  </div>
+</header>
+
+<nav>
+  <button class="active" onclick="showSection('dashboard', this)">📊 Tableau de bord</button>
+  <button onclick="showSection('start', this)">🚀 Démarrage</button>
+  <button onclick="showSection('cheptel', this)">🐓 Cheptel</button>
+  <button onclick="showSection('sante', this)">🏥 Santé</button>
+  <button onclick="showSection('oeufs', this)">🥚 Œufs</button>
+  <button onclick="showSection('couveuse', this)">🐣 Couveuse</button>
+  <button onclick="showSection('alimentation', this)">🍽️ Alimentation</button>
+  <button onclick="showSection('ventes', this)">💰 Ventes</button>
+  <button onclick="showSection('depenses', this)">💸 Dépenses</button>
+  <button onclick="showSection('caisse', this)">🏦 Caisse</button>
+  <button onclick="showSection('bilan', this)">📈 Bilan</button>
+</nav>
+
+<main>
+
+<section id="dashboard" class="section active">
+  <h2>Tableau de bord</h2>
+  <div id="dashboardHelper"></div>
+  <div class="grid" id="dashStats"></div>
+  <h3>Dernières activités</h3>
+  <div id="recentActivity"></div>
+</section>
+
+<section id="start" class="section">
+  <div class="start-hero"><h2>🚀 Démarrage de l'élevage</h2><p>Saisissez votre situation initiale</p></div>
+  <form onsubmit="submitStartForm(event)">
+    <h3>📅 Informations générales</h3>
+    <div class="form-row">
+      <div><label>Date de référence</label><input type="date" id="startDate" required></div>
+      <div><label>Note du lot</label><input type="text" id="startNote" placeholder="Ex: Cheptel initial 2026"></div>
+    </div>
+    <div class="section-separator"></div>
+    <h3>💰 Caisse de démarrage</h3>
+    <div class="animal-grid">
+      <div class="animal-input-card cash">
+        <h4><span class="emoji">🏦</span>Solde initial</h4>
+        <div class="form-row"><div><label>Montant (MAD)</label><input type="number" id="startInitialCash" min="0" step="0.01" value="0" oninput="updateStartSummary()"></div></div>
+      </div>
+    </div>
+    <div class="section-separator"></div>
+    <h3>🐔 Animaux</h3>
+    <div class="animal-grid">
+      <div class="animal-input-card"><h4><span class="emoji">🐔</span>Poules</h4><div class="form-row"><div><label>Qté</label><input type="number" id="startPoule" min="0" value="0" oninput="updateStartSummary()"></div><div><label>Prix unit.</label><input type="number" id="startPoulePrice" min="0" step="0.01" value="0"></div></div></div>
+      <div class="animal-input-card"><h4><span class="emoji">🐓</span>Coqs</h4><div class="form-row"><div><label>Qté</label><input type="number" id="startCoq" min="0" value="0" oninput="updateStartSummary()"></div><div><label>Prix unit.</label><input type="number" id="startCoqPrice" min="0" step="0.01" value="0"></div></div></div>
+      <div class="animal-input-card"><h4><span class="emoji">🦃</span>Dindes</h4><div class="form-row"><div><label>Qté</label><input type="number" id="startDinde" min="0" value="0" oninput="updateStartSummary()"></div><div><label>Prix unit.</label><input type="number" id="startDindePrice" min="0" step="0.01" value="0"></div></div></div>
+      <div class="animal-input-card"><h4><span class="emoji">🦃</span>Dindons</h4><div class="form-row"><div><label>Qté</label><input type="number" id="startDindon" min="0" value="0" oninput="updateStartSummary()"></div><div><label>Prix unit.</label><input type="number" id="startDindonPrice" min="0" step="0.01" value="0"></div></div></div>
+      <div class="animal-input-card"><h4><span class="emoji">🐥</span>Poussins</h4><div class="form-row"><div><label>Qté</label><input type="number" id="startPoussin" min="0" value="0" oninput="updateStartSummary()"></div><div><label>Prix unit.</label><input type="number" id="startPoussinPrice" min="0" step="0.01" value="0"></div></div></div>
+      <div class="animal-input-card"><h4><span class="emoji">🐣</span>Dindonneaux</h4><div class="form-row"><div><label>Qté</label><input type="number" id="startDindonneau" min="0" value="0" oninput="updateStartSummary()"></div><div><label>Prix unit.</label><input type="number" id="startDindonneauPrice" min="0" step="0.01" value="0"></div></div></div>
+    </div>
+    <div class="section-separator"></div>
+    <h3>🥚 Œufs en stock</h3>
+    <div class="animal-grid">
+      <div class="animal-input-card eggs"><h4><span class="emoji">🥚</span>Œufs de poule</h4><div class="form-row"><div><label>Qté</label><input type="number" id="startEggPoule" min="0" value="0" oninput="updateStartSummary()"></div><div><label>Prix unit.</label><input type="number" id="startEggPoulePrice" min="0" step="0.01" value="0"></div></div></div>
+      <div class="animal-input-card eggs"><h4><span class="emoji">🥚</span>Œufs de dinde</h4><div class="form-row"><div><label>Qté</label><input type="number" id="startEggDinde" min="0" value="0" oninput="updateStartSummary()"></div><div><label>Prix unit.</label><input type="number" id="startEggDindePrice" min="0" step="0.01" value="0"></div></div></div>
+    </div>
+    <div class="section-separator"></div>
+    <h3>🐣 Œufs en couveuse</h3>
+    <div class="animal-grid">
+      <div class="animal-input-card incub"><h4><span class="emoji">🐣</span>Œufs de poule</h4><div class="form-row"><div><label>Qté</label><input type="number" id="startIncubPoule" min="0" value="0" oninput="updateStartSummary()"></div><div><label>Date mise</label><input type="date" id="startIncubPouleDate"></div></div></div>
+      <div class="animal-input-card incub"><h4><span class="emoji">🐣</span>Œufs de dinde</h4><div class="form-row"><div><label>Qté</label><input type="number" id="startIncubDinde" min="0" value="0" oninput="updateStartSummary()"></div><div><label>Date mise</label><input type="date" id="startIncubDindeDate"></div></div></div>
+    </div>
+    <div class="summary-box"><h4>📊 Résumé</h4><div id="startSummaryContent"><p style="color:var(--muted);font-style:italic;">Aucune donnée...</p></div></div>
+    <div class="btn-group">
+      <button type="submit" class="btn">➕ Ajouter</button>
+      <button type="button" class="btn warning" onclick="submitStartForm(true)">🔄 Remplacer</button>
+      <button type="button" class="btn accent" onclick="clearStartForm()">🧹 Effacer</button>
+    </div>
+  </form>
+</section>
+
+<section id="cheptel" class="section">
+  <h2>Gestion du cheptel</h2>
+  <form onsubmit="addAnimal(event)">
+    <h3>Ajouter un animal</h3>
+    <div class="form-row">
+      <div><label>Type</label><select id="animalType" required><option value="poule">🐔 Poule</option><option value="coq">🐓 Coq</option><option value="dinde">🦃 Dinde</option><option value="dindon">🦃 Dindon</option><option value="poussin">🐥 Poussin</option><option value="dindonneau">🐣 Dindonneau</option></select></div>
+      <div><label>Qté</label><input type="number" id="animalQty" min="1" value="1" required></div>
+      <div><label>Date</label><input type="date" id="animalDate" required></div>
+      <div><label>Prix unit. (MAD)</label><input type="number" id="animalPrice" min="0" step="0.01" value="0"></div>
+      <div><label>Note</label><input type="text" id="animalNote"></div>
+    </div>
+    <button type="submit" class="btn">➕ Ajouter</button>
+  </form>
+  <h3>Cheptel actuel</h3>
+  <div class="grid" id="cheptelStats"></div>
+  <div class="table-wrap"><table><thead><tr><th>Date</th><th>Type</th><th>Qté</th><th>Prix</th><th>Note</th><th>Actions</th></tr></thead><tbody id="cheptelTable"></tbody></table></div>
+  <h3>Sorties</h3>
+  <div class="table-wrap"><table><thead><tr><th>Date</th><th>Type</th><th>Qté</th><th>Raison</th><th>Actions</th></tr></thead><tbody id="sortiesTable"></tbody></table></div>
+</section>
+
+<section id="sante" class="section">
+  <h2>🏥 Santé</h2>
+  <form onsubmit="addSickness(event)">
+    <div class="form-row">
+      <div><label>Date</label><input type="date" id="sickDate" required></div>
+      <div><label>Animal</label><select id="sickType" required><option value="poule">Poule</option><option value="coq">Coq</option><option value="dinde">Dinde</option><option value="dindon">Dindon</option><option value="poussin">Poussin</option><option value="dindonneau">Dindonneau</option></select></div>
+      <div><label>Qté</label><input type="number" id="sickQty" min="1" value="1" required></div>
+      <div><label>Maladie</label><input type="text" id="sickDisease" placeholder="Ex: Coccidiose" required></div>
+      <div><label>Traitement</label><input type="text" id="sickTreatment"></div>
+      <div><label>Note</label><input type="text" id="sickNote"></div>
+    </div>
+    <button type="submit" class="btn danger">🤒 Enregistrer</button>
+  </form>
+  <div class="table-wrap"><table><thead><tr><th>Date</th><th>Animal</th><th>Qté</th><th>Maladie</th><th>Traitement</th><th>Note</th><th>Actions</th></tr></thead><tbody id="sicknessTable"></tbody></table></div>
+</section>
+
+<section id="oeufs" class="section">
+  <h2>🥚 Œufs</h2>
+  <div class="grid" id="eggsStock"></div>
+  
+  <!-- HISTOGRAMME -->
+  <div class="chart-container">
+    <div class="chart-header">
+      <h3 style="margin:0;">📊 Histogramme des collectes</h3>
+      <div class="chart-legend">
+        <div class="legend-item"><div class="legend-color poule"></div><span>🥚 Poule</span></div>
+        <div class="legend-item"><div class="legend-color dinde"></div><span>🥚 Dinde</span></div>
+      </div>
+    </div>
+    
+    <div class="period-selector" style="border:none; padding:0; margin-bottom:1rem; box-shadow:none;">
+      <div class="period-buttons" id="eggPeriodButtons">
+        <button onclick="setEggPeriod('all')" class="active" data-period="all">📊 Tout</button>
+        <button onclick="setEggPeriod('month')" data-period="month">📅 Ce mois-ci</button>
+        <button onclick="setEggPeriod('30days')" data-period="30days">🗓️ 30 derniers jours</button>
+        <button onclick="setEggPeriod('3months')" data-period="3months">📆 3 derniers mois</button>
+        <button onclick="setEggPeriod('custom')" data-period="custom">🔧 Personnalisé</button>
+      </div>
+      <div class="custom-dates" id="eggCustomDates">
+        <div><label>Date de début</label><input type="date" id="eggPeriodStart" onchange="applyEggCustomPeriod()"></div>
+        <div><label>Date de fin</label><input type="date" id="eggPeriodEnd" onchange="applyEggCustomPeriod()"></div>
+        <div><button class="btn small" onclick="applyEggCustomPeriod()">✅ Appliquer</button></div>
+      </div>
+      <div class="period-info" id="eggPeriodInfo">📊 Toutes les collectes</div>
+    </div>
+    
+    <div class="chart-stats" id="chartStats"></div>
+    
+    <div class="chart-wrapper">
+      <div class="y-axis" id="yAxis"></div>
+      <div class="chart-bars" id="chartBars"></div>
+    </div>
+  </div>
+  
+  <form onsubmit="addEggCollection(event)">
+    <h3>Collecte</h3>
+    <div class="form-row">
+      <div><label>Espèce</label><select id="eggSpecies" required><option value="poule">Poule</option><option value="dinde">Dinde</option></select></div>
+      <div><label>Date</label><input type="date" id="eggDate" required></div>
+      <div><label>Qté</label><input type="number" id="eggQty" min="1" required></div>
+      <div><label>Prix unit. estimé (MAD)</label><input type="number" id="eggPrice" min="0" step="0.01" placeholder="Auto si vide"></div>
+      <div><label>Note</label><input type="text" id="eggNote"></div>
+    </div>
+    <button type="submit" class="btn">🥚 Enregistrer</button>
+  </form>
+  <h3>Collectes</h3>
+  <div class="table-wrap"><table><thead><tr><th>Date</th><th>Espèce</th><th>Qté</th><th>Prix unit.</th><th>Valeur</th><th>Note</th><th>Actions</th></tr></thead><tbody id="eggsTable"></tbody></table></div>
+  <h3>Sorties (casse/cadeau)</h3>
+  <form onsubmit="addEggExit(event)">
+    <div class="form-row">
+      <div><label>Type</label><select id="exitType" required><option value="casse">🥚 Casse</option><option value="cadeau">🎁 Cadeau</option><option value="autre">📦 Autre</option></select></div>
+      <div><label>Espèce</label><select id="exitSpecies" required><option value="poule">Poule</option><option value="dinde">Dinde</option></select></div>
+      <div><label>Date</label><input type="date" id="exitDate" required></div>
+      <div><label>Qté</label><input type="number" id="exitQty" min="1" required></div>
+      <div><label>Valeur (MAD)</label><input type="number" id="exitValue" min="0" step="0.01" value="0"></div>
+      <div><label>Note</label><input type="text" id="exitNote"></div>
+    </div>
+    <button type="submit" class="btn warning">🚮 Enregistrer</button>
+  </form>
+  <div class="table-wrap"><table><thead><tr><th>Date</th><th>Type</th><th>Espèce</th><th>Qté</th><th>Valeur</th><th>Note</th><th>Actions</th></tr></thead><tbody id="exitsTable"></tbody></table></div>
+</section>
+
+<section id="couveuse" class="section">
+  <h2>🐣 Couveuse</h2>
+  <form onsubmit="addIncubation(event)">
+    <div class="form-row">
+      <div><label>Date</label><input type="date" id="incubDate" required></div>
+      <div><label>Espèce</label><select id="incubSpecies" onchange="updateDefaultIncubDays()"><option value="poule">Poule (21j)</option><option value="dinde">Dinde (28j)</option></select></div>
+      <div><label>Qté</label><input type="number" id="incubQty" min="1" required></div>
+      <div><label>Durée (j)</label><input type="number" id="incubDays" min="1" value="21" required></div>
+      <div><label>Écart (j)</label><input type="number" id="incubMargin" min="0" value="3" required></div>
+      <div><label>Note</label><input type="text" id="incubNote"></div>
+    </div>
+    <button type="submit" class="btn">🐣 Mettre en couveuse</button>
+  </form>
+  <div class="table-wrap"><table><thead><tr><th>Date</th><th>Espèce</th><th>Œufs</th><th>Éclosions</th><th>Durée</th><th>Plage</th><th>Progression</th><th>Actions</th></tr></thead><tbody id="incubTable"></tbody></table></div>
+</section>
+
+<section id="alimentation" class="section">
+  <h2>🍽️ Alimentation</h2>
+  <div class="info-box info">🌾 <strong>3 étapes :</strong><br>1. Créez vos <strong>ingrédients</strong> avec prix/kg<br>2. Créez des <strong>rations</strong> (mélanges avec %)<br>3. Distribuez : <strong>grammes par animal</strong> → calcul auto</div>
+  <h3>🌾 Ingrédients</h3>
+  <form onsubmit="addIngredient(event)">
+    <div class="form-row">
+      <div><label>Nom</label><input type="text" id="ingName" placeholder="Ex: Maïs" required></div>
+      <div><label>Prix/kg (MAD)</label><input type="number" id="ingPrice" min="0" step="0.01" required></div>
+    </div>
+    <button type="submit" class="btn">➕ Ajouter</button>
+  </form>
+  <div class="table-wrap"><table><thead><tr><th>Nom</th><th>Prix/kg</th><th>Actions</th></tr></thead><tbody id="ingredientsTable"></tbody></table></div>
+  <div class="section-separator"></div>
+  <h3>🥣 Rations</h3>
+  <form onsubmit="addRation(event)">
+    <div class="form-row"><div><label>Nom de la ration</label><input type="text" id="rationName" placeholder="Ex: Ration pondeuses" required></div></div>
+    <h4 style="margin-top:1rem; color:var(--primary);">Composition</h4>
+    <div id="rationIngredients"></div>
+    <button type="button" class="btn small" onclick="addRationIngredientRow()" style="margin-top:0.5rem;">➕ Ajouter ingrédient</button>
+    <div id="rationSummary" style="margin-top:1rem; padding:1rem; background:#f8f9fa; border-radius:6px;"></div>
+    <button type="submit" class="btn" style="margin-top:1rem;">➕ Créer la ration</button>
+  </form>
+  <div class="table-wrap"><table><thead><tr><th>Nom</th><th>Composition</th><th>Coût/kg</th><th>Actions</th></tr></thead><tbody id="rationsTable"></tbody></table></div>
+  <div class="section-separator"></div>
+  <h3>📊 Distribution quotidienne</h3>
+  <div class="info-box warning">⚖️ Quantité recommandée : <strong>80g à 150g</strong> par animal/jour.</div>
+  <form onsubmit="addDistribution(event)">
+    <div class="form-row">
+      <div><label>Date</label><input type="date" id="distDate" required></div>
+      <div><label>Type d'animal</label><select id="distType" required onchange="updateDistSummary()"><option value="poule">🐔 Poules</option><option value="coq">🐓 Coqs</option><option value="dinde">🦃 Dindes</option><option value="dindon">🦃 Dindons</option><option value="poussin">🐥 Poussins</option><option value="dindonneau">🐣 Dindonneaux</option></select></div>
+      <div><label>Ration</label><select id="distRation" required onchange="updateDistSummary()"></select></div>
+      <div><label>Quantité par animal (g)</label><input type="number" id="distGrams" min="1" max="500" step="1" value="120" required oninput="updateDistSummary()"><small style="color:var(--muted);">Recommandé : 80g à 150g</small></div>
+      <div><label>Note</label><input type="text" id="distNote"></div>
+    </div>
+    <div class="dist-summary" id="distSummary"><h4>📊 Récapitulatif</h4><div id="distSummaryContent"></div></div>
+    <button type="submit" class="btn" style="margin-top:1rem;">📊 Enregistrer</button>
+  </form>
+  <div class="table-wrap"><table><thead><tr><th>Date</th><th>Animal</th><th>Ration</th><th>g/animal</th><th>Nb</th><th>Total kg</th><th>Coût</th><th>Note</th><th>Actions</th></tr></thead><tbody id="distributionsTable"></tbody></table></div>
+  <h3>💰 Coût par type</h3>
+  <div class="grid" id="feedCostStats"></div>
+</section>
+
+<section id="ventes" class="section">
+  <h2>💰 Ventes</h2>
+  <form onsubmit="addSale(event)">
+    <div class="form-row">
+      <div><label>Date</label><input type="date" id="saleDate" required></div>
+      <div><label>Type</label><select id="saleType" onchange="toggleSaleSpecies()" required><option value="oeuf">Œufs</option><option value="poule">Poules</option><option value="coq">Coqs</option><option value="dinde">Dindes</option><option value="dindon">Dindons</option><option value="poussin">Poussins</option><option value="dindonneau">Dindonneaux</option></select></div>
+      <div id="saleSpeciesWrap" style="display:none"><label>Espèce</label><select id="saleSpecies"><option value="poule">Poule</option><option value="dinde">Dinde</option></select></div>
+      <div><label>Qté</label><input type="number" id="saleQty" min="1" required></div>
+      <div><label>Prix unit. (MAD)</label><input type="number" id="salePrice" min="0" step="0.01" required></div>
+      <div><label>Client</label><input type="text" id="saleNote"></div>
+    </div>
+    <button type="submit" class="btn">💰 Enregistrer</button>
+  </form>
+  <div class="table-wrap"><table><thead><tr><th>Date</th><th>Type</th><th>Espèce</th><th>Qté</th><th>Prix</th><th>Total</th><th>Note</th><th>Actions</th></tr></thead><tbody id="salesTable"></tbody></table></div>
+</section>
+
+<section id="depenses" class="section">
+  <h2>💸 Dépenses</h2>
+  <form onsubmit="addExpense(event)">
+    <div class="form-row">
+      <div><label>Date</label><input type="date" id="expDate" required></div>
+      <div><label>Catégorie</label><select id="expCategory" required><option value="alimentation">🍽️ Alimentation</option><option value="salaires">💵 Salaires</option><option value="transports">🚚 Transports</option><option value="medicament">💊 Médicaments</option><option value="veterinaire">🩺 Vétérinaire</option><option value="equipement">🔧 Équipement</option><option value="autre">📦 Autre</option></select></div>
+      <div><label>Montant (MAD)</label><input type="number" id="expAmount" min="0" step="0.01" required></div>
+      <div><label>Unités</label><input type="number" id="expUnits" min="0" value="0"></div>
+      <div><label>Description</label><input type="text" id="expDesc"></div>
+    </div>
+    <button type="submit" class="btn">💸 Enregistrer</button>
+  </form>
+  <div class="table-wrap"><table><thead><tr><th>Date</th><th>Catégorie</th><th>Montant</th><th>Unités</th><th>Prix/u</th><th>Description</th><th>Actions</th></tr></thead><tbody id="expensesTable"></tbody></table></div>
+</section>
+
+<section id="caisse" class="section">
+  <h2>🏦 Caisse</h2>
+  <div class="grid" id="caisseStats"></div>
+  <h3>Mouvements</h3>
+  <div class="table-wrap"><table><thead><tr><th>Date</th><th>Type</th><th>Motif</th><th>Montant</th><th>Impact</th></tr></thead><tbody id="caisseTable"></tbody></table></div>
+</section>
+
+<section id="bilan" class="section">
+  <div class="bilan-header">
+    <h2 style="margin-bottom:0; border:none; padding:0;">📈 Bilan</h2>
+    <button class="btn pdf" onclick="downloadBilanPDF()">📄 Télécharger PDF</button>
+  </div>
+  <div class="period-selector">
+    <h3 style="margin-top:0;">📅 Période d'analyse</h3>
+    <div class="period-buttons" id="periodButtons">
+      <button onclick="setPeriod('all')" class="active" data-period="all">📊 Tout</button>
+      <button onclick="setPeriod('month')" data-period="month">📅 Ce mois-ci</button>
+      <button onclick="setPeriod('lastMonth')" data-period="lastMonth">⏮️ Mois dernier</button>
+      <button onclick="setPeriod('30days')" data-period="30days">🗓️ 30 derniers jours</button>
+      <button onclick="setPeriod('year')" data-period="year">📆 Année en cours</button>
+      <button onclick="setPeriod('custom')" data-period="custom">🔧 Personnalisé</button>
+    </div>
+    <div class="custom-dates" id="customDates">
+      <div><label>Date de début</label><input type="date" id="periodStart" onchange="applyCustomPeriod()"></div>
+      <div><label>Date de fin</label><input type="date" id="periodEnd" onchange="applyCustomPeriod()"></div>
+      <div><button class="btn small" onclick="applyCustomPeriod()">✅ Appliquer</button></div>
+    </div>
+    <div class="period-info" id="periodInfo">📊 Analyse sur toutes les données</div>
+  </div>
+  <div class="grid" id="bilanStats"></div>
+  <h3>Répartition des dépenses</h3>
+  <div class="grid" id="depBreakdown"></div>
+  <h3>Répartition des ventes</h3>
+  <div class="grid" id="salesBreakdown"></div>
+  <h3>Pertes (casse d'œufs)</h3>
+  <div class="grid" id="lossBreakdown"></div>
+  <h3>🌾 Consommation d'aliments par ingrédient</h3>
+  <div class="table-wrap"><table><thead><tr><th>Ingrédient</th><th>Quantité (kg)</th><th>Prix/kg</th><th>Montant total</th><th>% consommation</th></tr></thead><tbody id="ingredientsConsumptionTable"></tbody></table></div>
+  <div class="grid" id="ingredientsConsumptionCards"></div>
+  <h3>🥚 Valeur des collectes d'œufs</h3>
+  <div class="grid" id="eggsCollectionValue"></div>
+</section>
+
+</main>
+
+<script>
+// ============ AUTH ============
+const AUTH_KEY = 'elevageVolaille_auth_v1';
+const SESSION_KEY = 'elevageVolaille_session_v1';
+async function hashPassword(pw) {
+  const data = new TextEncoder().encode(pw);
+  const buf = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+async function checkAuth() {
+  const auth = JSON.parse(localStorage.getItem(AUTH_KEY) || '{}');
+  if (!auth.passwordHash || localStorage.getItem(SESSION_KEY) === 'active') {
+    document.getElementById('loginOverlay').classList.add('hidden');
+  } else {
+    document.getElementById('loginOverlay').classList.remove('hidden');
+    document.getElementById('loginPassword').focus();
+  }
+}
+async function login() {
+  const pw = document.getElementById('loginPassword').value;
+  const err = document.getElementById('loginError');
+  if (!pw) { err.textContent = 'Entrez un mot de passe'; return; }
+  const auth = JSON.parse(localStorage.getItem(AUTH_KEY) || '{}');
+  const hash = await hashPassword(pw);
+  if (hash === auth.passwordHash) {
+    localStorage.setItem(SESSION_KEY, 'active');
+    document.getElementById('loginOverlay').classList.add('hidden');
+    document.getElementById('loginPassword').value = '';
+    err.textContent = '';
+  } else {
+    err.textContent = '❌ Mot de passe incorrect';
+    document.getElementById('loginPassword').value = '';
+  }
+}
+function lockApp() { localStorage.removeItem(SESSION_KEY); closeSettings(); location.reload(); }
+function forgotPassword() {
+  if (confirm('⚠️ Réinitialiser ? Toutes les données seront effacées.')) {
+    if (confirm('Vraiment sûr ?')) {
+      localStorage.removeItem(AUTH_KEY); localStorage.removeItem(SESSION_KEY); localStorage.removeItem(DB_KEY);
+      location.reload();
+    }
+  }
+}
+function openSettings() {
+  const auth = JSON.parse(localStorage.getItem(AUTH_KEY) || '{}');
+  const s = document.getElementById('authStatus');
+  const b = document.getElementById('authBadge');
+  if (auth.passwordHash) { s.textContent = 'Protection activée'; b.textContent = 'ACTIF'; b.className = 'status-badge active'; }
+  else { s.textContent = 'Protection inactive'; b.textContent = 'INACTIF'; b.className = 'status-badge inactive'; }
+  document.getElementById('settingsModal').classList.remove('hidden');
+}
+function closeSettings() { document.getElementById('settingsModal').classList.add('hidden'); }
+async function changePassword() {
+  const auth = JSON.parse(localStorage.getItem(AUTH_KEY) || '{}');
+  let newPw;
+  if (auth.passwordHash) {
+    const cur = prompt('Mot de passe actuel :');
+    if (!cur) return;
+    if (await hashPassword(cur) !== auth.passwordHash) { alert('❌ Incorrect'); return; }
+    newPw = prompt('Nouveau mot de passe :');
+    if (!newPw) return;
+    const conf = prompt('Confirmer :');
+    if (conf !== newPw) { alert('❌ Non identiques'); return; }
+  } else {
+    newPw = prompt('Nouveau mot de passe :');
+    if (!newPw) return;
+    const conf = prompt('Confirmer :');
+    if (conf !== newPw) { alert('❌ Non identiques'); return; }
+  }
+  if (newPw.length < 4) { alert('❌ Minimum 4 caractères'); return; }
+  localStorage.setItem(AUTH_KEY, JSON.stringify({ passwordHash: await hashPassword(newPw) }));
+  localStorage.setItem(SESSION_KEY, 'active');
+  alert('✅ Modifié !');
+  openSettings();
+}
+async function removePassword() {
+  const auth = JSON.parse(localStorage.getItem(AUTH_KEY) || '{}');
+  if (!auth.passwordHash) { alert('Aucun mot de passe'); return; }
+  const pw = prompt('Mot de passe actuel :');
+  if (!pw) return;
+  if (await hashPassword(pw) !== auth.passwordHash) { alert('❌ Incorrect'); return; }
+  if (confirm('Supprimer le mot de passe ?')) {
+    localStorage.removeItem(AUTH_KEY);
+    localStorage.setItem(SESSION_KEY, 'active');
+    alert('✅ Supprimé');
+    openSettings();
+  }
+}
+
+// ============ DATA ============
+const DB_KEY = 'elevageVolaille_v12_MAD';
+let data = {
+  animals: [], sorties: [], eggs: [], eggExits: [], incubations: [],
+  sales: [], expenses: [], conversions: [], sicknesses: [],
+  initialCash: 0, ingredients: [], rations: [], distributions: []
+};
+
+let currentPeriod = { start: null, end: null, label: 'Tout' };
+let eggPeriod = { start: null, end: null, label: 'Tout' };
+
+function load() {
+  const raw = localStorage.getItem(DB_KEY);
+  if (raw) {
+    try {
+      data = JSON.parse(raw);
+      ['eggExits','conversions','sicknesses','ingredients','rations','distributions'].forEach(k => { if (!data[k]) data[k] = []; });
+      if (data.initialCash === undefined) data.initialCash = 0;
+      data.eggs.forEach(e => { if (!e.species) e.species = 'poule'; });
+      data.eggExits.forEach(e => { if (!e.species) e.species = 'poule'; });
+      data.sales.forEach(s => { if (s.type === 'oeuf' && !s.species) s.species = 'poule'; });
+      data.incubations.forEach(i => { if (i.margin === undefined) i.margin = 3; });
+      data.distributions.forEach(d => {
+        if (d.gramsPerAnimal === undefined && d.qty && d.nbAnimals) {
+          d.gramsPerAnimal = Math.round((d.qty / d.nbAnimals) * 1000);
+        }
+      });
+    } catch(e) { console.error(e); }
+  }
+  const today = new Date().toISOString().slice(0,10);
+  ['animalDate','eggDate','exitDate','incubDate','saleDate','expDate','startDate','sickDate','distDate','startIncubPouleDate','startIncubDindeDate','periodStart','periodEnd','eggPeriodStart','eggPeriodEnd'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && !el.value) el.value = today;
+  });
+  const wa = new Date(); wa.setDate(wa.getDate() - 7);
+  const waStr = wa.toISOString().slice(0,10);
+  if (!document.getElementById('startIncubPouleDate').value) document.getElementById('startIncubPouleDate').value = waStr;
+  if (!document.getElementById('startIncubDindeDate').value) document.getElementById('startIncubDindeDate').value = waStr;
+}
+function save() { localStorage.setItem(DB_KEY, JSON.stringify(data)); }
+function showSection(id, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderAll();
+}
+
+// ============ HELPERS ============
+function fmt(n) { return new Intl.NumberFormat('fr-MA').format(Math.round(n*100)/100); }
+function fmtMoney(n) { return fmt(n) + ' MAD'; }
+function typeLabel(t) { return ({'poule':'poule','coq':'coq','dinde':'dinde','dindon':'dindon','poussin':'poussin','dindonneau':'dindonneau'})[t] || t; }
+function typeBadge(t) {
+  const e = {'poule':'🐔','coq':'🐓','dinde':'🦃','dindon':'🦃','poussin':'🐥','dindonneau':'🐣'};
+  return `${e[t]||''} ${t}`;
+}
+function categoryLabel(c) {
+  return ({'alimentation':'🍽️ Alimentation','salaires':'💵 Salaires','transports':'🚚 Transports','medicament':'💊 Médicaments','veterinaire':'🩺 Vétérinaire','equipement':'🔧 Équipement','autre':'📦 Autre'})[c] || c;
+}
+function currentStock() {
+  const s = {poule:0,coq:0,dinde:0,dindon:0,poussin:0,dindonneau:0};
+  data.animals.forEach(a => s[a.type] += a.qty);
+  data.sorties.forEach(x => { if (s[x.type] !== undefined) s[x.type] -= x.qty; });
+  data.sales.forEach(x => { if (s[x.type] !== undefined) s[x.type] -= x.qty; });
+  return s;
+}
+
+function isInPeriod(dateStr, period) {
+  const p = period || currentPeriod;
+  if (!p.start && !p.end) return true;
+  if (!dateStr) return false;
+  if (p.start && dateStr < p.start) return false;
+  if (p.end && dateStr > p.end) return false;
+  return true;
+}
+
+function totalSales() { return data.sales.filter(s => isInPeriod(s.date)).reduce((s,x) => s + x.qty*x.price, 0); }
+function totalExpenses() { return data.expenses.filter(e => isInPeriod(e.date)).reduce((s,x) => s + x.amount, 0); }
+function totalEggLossValue() { return data.eggExits.filter(e => e.type==='casse' && isInPeriod(e.date)).reduce((s,x) => s + (x.value||0), 0); }
+function totalFeedCost() { return data.distributions.filter(d => isInPeriod(d.date)).reduce((s,d) => s + d.totalCost, 0); }
+function feedCostByType(t) { return data.distributions.filter(d => d.type === t && isInPeriod(d.date)).reduce((s,d) => s + d.totalCost, 0); }
+function eggsBySpecies(sp) {
+  const col = data.eggs.filter(e => e.species===sp).reduce((s,e) => s+e.qty, 0);
+  const inc = data.incubations.filter(i => i.species===sp).reduce((s,i) => s+i.qty, 0);
+  const sold = data.sales.filter(s => s.type==='oeuf' && s.species===sp).reduce((s,x) => s+x.qty, 0);
+  const ex = data.eggExits.filter(x => x.species===sp).reduce((s,x) => s+x.qty, 0);
+  return { collected: col, incubated: inc, sold, exits: ex, available: col - inc - sold - ex };
+}
+function totalEggsCollected() { return data.eggs.reduce((s,e) => s+e.qty, 0); }
+function eggsInIncubation() { return data.incubations.reduce((s,i) => s + (i.qty - (i.hatched||0)), 0); }
+
+function getEggAveragePrice(species) {
+  const sales = data.sales.filter(s => s.type === 'oeuf' && s.species === species);
+  if (sales.length === 0) return 0;
+  const totalQty = sales.reduce((s,x) => s + x.qty, 0);
+  const totalValue = sales.reduce((s,x) => s + x.qty * x.price, 0);
+  return totalQty > 0 ? totalValue / totalQty : 0;
+}
+
+function getEggCollectionValue() {
+  const result = { poule: { qty: 0, value: 0, avgPrice: 0 }, dinde: { qty: 0, value: 0, avgPrice: 0 } };
+  ['poule', 'dinde'].forEach(sp => {
+    const avgPrice = getEggAveragePrice(sp);
+    const filteredEggs = data.eggs.filter(e => e.species === sp && isInPeriod(e.date));
+    let totalValue = 0;
+    let totalQty = 0;
+    filteredEggs.forEach(e => {
+      const price = e.price || avgPrice;
+      totalValue += e.qty * price;
+      totalQty += e.qty;
+    });
+    result[sp] = { qty: totalQty, value: totalValue, avgPrice };
+  });
+  return result;
+}
+
+function getIngredientsConsumption() {
+  const consumption = {};
+  const filteredDist = data.distributions.filter(d => isInPeriod(d.date));
+  filteredDist.forEach(d => {
+    const ration = data.rations.find(r => r.id === d.rationId);
+    if (!ration) return;
+    ration.ingredients.forEach(ri => {
+      const ing = data.ingredients.find(i => i.id === ri.ingredientId);
+      if (!ing) return;
+      const qtyKg = d.qty * (ri.percent / 100);
+      const cost = qtyKg * ing.pricePerKg;
+      if (!consumption[ing.id]) {
+        consumption[ing.id] = { name: ing.name, qty: 0, cost: 0, pricePerKg: ing.pricePerKg };
+      }
+      consumption[ing.id].qty += qtyKg;
+      consumption[ing.id].cost += cost;
+    });
+  });
+  return Object.values(consumption).sort((a,b) => b.cost - a.cost);
+}
+
+// ============ PÉRIODE BILAN ============
+function setPeriod(period) {
+  const today = new Date();
+  const todayStr = today.toISOString().slice(0,10);
+  document.querySelectorAll('#periodButtons button').forEach(b => b.classList.remove('active'));
+  document.querySelector(`#periodButtons button[data-period="${period}"]`).classList.add('active');
+  const customDates = document.getElementById('customDates');
+  const info = document.getElementById('periodInfo');
+  if (period === 'all') {
+    currentPeriod = { start: null, end: null, label: 'Toutes les données' };
+    customDates.classList.remove('show');
+    info.textContent = '📊 Analyse sur toutes les données';
+  } else if (period === 'month') {
+    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().slice(0,10);
+    currentPeriod = { start: firstDay, end: todayStr, label: 'Ce mois-ci' };
+    customDates.classList.remove('show');
+    info.textContent = `📅 Période : du ${firstDay} au ${todayStr}`;
+  } else if (period === 'lastMonth') {
+    const firstDayLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1).toISOString().slice(0,10);
+    const lastDayLastMonth = new Date(today.getFullYear(), today.getMonth(), 0).toISOString().slice(0,10);
+    currentPeriod = { start: firstDayLastMonth, end: lastDayLastMonth, label: 'Mois dernier' };
+    customDates.classList.remove('show');
+    info.textContent = `⏮️ Période : du ${firstDayLastMonth} au ${lastDayLastMonth}`;
+  } else if (period === '30days') {
+    const thirtyDaysAgo = new Date(today);
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29);
+    const startStr = thirtyDaysAgo.toISOString().slice(0,10);
+    currentPeriod = { start: startStr, end: todayStr, label: '30 derniers jours' };
+    customDates.classList.remove('show');
+    info.textContent = `🗓️ Période : du ${startStr} au ${todayStr}`;
+  } else if (period === 'year') {
+    const firstDayOfYear = new Date(today.getFullYear(), 0, 1).toISOString().slice(0,10);
+    currentPeriod = { start: firstDayOfYear, end: todayStr, label: 'Année en cours' };
+    customDates.classList.remove('show');
+    info.textContent = `📆 Période : du ${firstDayOfYear} au ${todayStr}`;
+  } else if (period === 'custom') {
+    customDates.classList.add('show');
+    applyCustomPeriod();
+    return;
+  }
+  renderBilan();
+}
+
+function applyCustomPeriod() {
+  const start = document.getElementById('periodStart').value;
+  const end = document.getElementById('periodEnd').value;
+  const info = document.getElementById('periodInfo');
+  if (!start || !end) { info.textContent = '⚠️ Veuillez sélectionner les deux dates'; return; }
+  if (start > end) { info.textContent = '⚠️ La date de début doit être avant la date de fin'; return; }
+  currentPeriod = { start, end, label: 'Personnalisé' };
+  info.textContent = `🔧 Période personnalisée : du ${start} au ${end}`;
+  renderBilan();
+}
+
+// ============ PÉRIODE ŒUFS (HISTOGRAMME) ============
+function setEggPeriod(period, silent = false) {
+  const today = new Date();
+  const todayStr = today.toISOString().slice(0,10);
+  document.querySelectorAll('#eggPeriodButtons button').forEach(b => b.classList.remove('active'));
+  const btn = document.querySelector(`#eggPeriodButtons button[data-period="${period}"]`);
+  if (btn) btn.classList.add('active');
+  const customDates = document.getElementById('eggCustomDates');
+  const info = document.getElementById('eggPeriodInfo');
+  
+  if (period === 'all') {
+    eggPeriod = { start: null, end: null, label: 'Tout' };
+    customDates.classList.remove('show');
+    info.textContent = '📊 Toutes les collectes';
+  } else if (period === 'month') {
+    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().slice(0,10);
+    eggPeriod = { start: firstDay, end: todayStr, label: 'Ce mois-ci' };
+    customDates.classList.remove('show');
+    info.textContent = `📅 Période : du ${firstDay} au ${todayStr}`;
+  } else if (period === '30days') {
+    const d = new Date(today); d.setDate(d.getDate() - 29);
+    const startStr = d.toISOString().slice(0,10);
+    eggPeriod = { start: startStr, end: todayStr, label: '30 derniers jours' };
+    customDates.classList.remove('show');
+    info.textContent = `🗓️ Période : du ${startStr} au ${todayStr}`;
+  } else if (period === '3months') {
+    const d = new Date(today); d.setMonth(d.getMonth() - 3);
+    const startStr = d.toISOString().slice(0,10);
+    eggPeriod = { start: startStr, end: todayStr, label: '3 derniers mois' };
+    customDates.classList.remove('show');
+    info.textContent = `📆 Période : du ${startStr} au ${todayStr}`;
+  } else if (period === 'custom') {
+    customDates.classList.add('show');
+    if (!silent) applyEggCustomPeriod();
+    return;
+  }
+  renderEggChart();
+}
+
+function applyEggCustomPeriod() {
+  const start = document.getElementById('eggPeriodStart').value;
+  const end = document.getElementById('eggPeriodEnd').value;
+  const info = document.getElementById('eggPeriodInfo');
+  if (!start || !end) { info.textContent = '⚠️ Veuillez sélectionner les deux dates'; return; }
+  if (start > end) { info.textContent = '⚠️ La date de début doit être avant la date de fin'; return; }
+  eggPeriod = { start, end, label: 'Personnalisé' };
+  info.textContent = `🔧 Période : du ${start} au ${end}`;
+  renderEggChart();
+}
+
+// ============ START ============
+function updateStartSummary() {
+  const animals = [
+    {k:'Poule',e:'🐔',l:'poules'},{k:'Coq',e:'🐓',l:'coqs'},{k:'Dinde',e:'🦃',l:'dindes'},
+    {k:'Dindon',e:'🦃',l:'dindons'},{k:'Poussin',e:'🐥',l:'poussins'},{k:'Dindonneau',e:'🐣',l:'dindonneaux'}
+  ];
+  const eggs = [{k:'EggPoule',e:'🥚',l:'œufs poule'},{k:'EggDinde',e:'🥚',l:'œufs dinde'}];
+  const incs = [{k:'IncubPoule',e:'🐣',l:'œufs poule (couveuse)'},{k:'IncubDinde',e:'🐣',l:'œufs dinde (couveuse)'}];
+  let tA=0, tAV=0, tE=0, tEV=0, tI=0;
+  let lines = '';
+  const cash = +document.getElementById('startInitialCash').value || 0;
+  if (cash > 0) lines += `<div class="summary-line"><span>🏦 Caisse initiale</span><span>${fmtMoney(cash)}</span></div>`;
+  animals.forEach(t => {
+    const q = +document.getElementById('start'+t.k).value || 0;
+    const p = +document.getElementById('start'+t.k+'Price').value || 0;
+    if (q > 0) { tA += q; tAV += q*p; lines += `<div class="summary-line"><span>${t.e} ${q} ${t.l}</span><span>${p>0?fmtMoney(q*p):'(sans prix)'}</span></div>`; }
+  });
+  if (tA > 0) lines += `<div class="summary-line" style="color:var(--primary);font-weight:500;"><span>Sous-total animaux</span><span>${tA} tête(s) — ${fmtMoney(tAV)}</span></div>`;
+  eggs.forEach(t => {
+    const q = +document.getElementById('start'+t.k).value || 0;
+    const p = +document.getElementById('start'+t.k+'Price').value || 0;
+    if (q > 0) { tE += q; tEV += q*p; lines += `<div class="summary-line"><span>${t.e} ${q} ${t.l}</span><span>${p>0?fmtMoney(q*p):'(sans prix)'}</span></div>`; }
+  });
+  if (tE > 0) lines += `<div class="summary-line" style="color:var(--warning);font-weight:500;"><span>Sous-total œufs</span><span>${tE} — ${fmtMoney(tEV)}</span></div>`;
+  incs.forEach(t => {
+    const q = +document.getElementById('start'+t.k).value || 0;
+    if (q > 0) { tI += q; const d = document.getElementById('start'+t.k+'Date').value || '?'; lines += `<div class="summary-line"><span>${t.e} ${q} ${t.l} - ${d}</span><span>(incubation)</span></div>`; }
+  });
+  if (tI > 0) lines += `<div class="summary-line" style="color:#e76f51;font-weight:500;"><span>Sous-total couveuse</span><span>${tI} œuf(s)</span></div>`;
+  const c = document.getElementById('startSummaryContent');
+  const tot = tA + tE + tI;
+  const val = tAV + tEV + cash;
+  if (tot === 0 && cash === 0) c.innerHTML = '<p style="color:var(--muted);font-style:italic;">Aucune donnée...</p>';
+  else c.innerHTML = lines + `<div class="summary-line" style="margin-top:0.8rem;padding-top:0.8rem;border-top:2px solid var(--primary);font-size:1.05rem;"><span><strong>📊 TOTAL</strong></span><span><strong>${tot>0?tot+' unité(s)':'Caisse'}</strong> — ${fmtMoney(val)}</span></div>`;
+}
+function clearStartForm() {
+  if (!confirm('Effacer ?')) return;
+  ['Poule','Coq','Dinde','Dindon','Poussin','Dindonneau'].forEach(t => { document.getElementById('start'+t).value = 0; document.getElementById('start'+t+'Price').value = 0; });
+  ['EggPoule','EggDinde','IncubPoule','IncubDinde'].forEach(t => { document.getElementById('start'+t).value = 0; const p = document.getElementById('start'+t+'Price'); if (p) p.value = 0; });
+  document.getElementById('startInitialCash').value = 0;
+  document.getElementById('startNote').value = '';
+  updateStartSummary();
+}
+function buildIncubEntry(sp, qty, sd, note) {
+  const days = sp === 'poule' ? 21 : 28;
+  const margin = 3;
+  const s = new Date(sd);
+  const e = new Date(s); e.setDate(e.getDate() + days);
+  const eMin = new Date(s); eMin.setDate(eMin.getDate() + Math.max(0, days - margin));
+  const eMax = new Date(s); eMax.setDate(eMax.getDate() + days + margin);
+  return { id: Date.now() + Math.random(), date: sd, qty, species: sp, days, margin,
+    endDate: e.toISOString().slice(0,10), endDateMin: eMin.toISOString().slice(0,10),
+    endDateMax: eMax.toISOString().slice(0,10), hatched: 0, addedToStock: 0, note };
+}
+function submitStartForm(e, replace = false) {
+  if (e && e.preventDefault) e.preventDefault();
+  const date = document.getElementById('startDate').value;
+  const note = document.getElementById('startNote').value;
+  const animalKeys = [{k:'Poule',t:'poule'},{k:'Coq',t:'coq'},{k:'Dinde',t:'dinde'},{k:'Dindon',t:'dindon'},{k:'Poussin',t:'poussin'},{k:'Dindonneau',t:'dindonneau'}];
+  const aE = [];
+  animalKeys.forEach(t => {
+    const q = +document.getElementById('start'+t.k).value || 0;
+    const p = +document.getElementById('start'+t.k+'Price').value || 0;
+    if (q > 0) aE.push({ id: Date.now()+Math.random(), type: t.t, qty: q, date, price: p, note: note ? `Lot initial - ${note}` : 'Lot initial' });
+  });
+  const eE = [];
+  ['poule','dinde'].forEach(sp => {
+    const k = sp === 'poule' ? 'EggPoule' : 'EggDinde';
+    const q = +document.getElementById('start'+k).value || 0;
+    if (q > 0) eE.push({ id: Date.now()+Math.random(), species: sp, date, qty: q, note: note ? `Stock initial - ${note}` : 'Stock initial' });
+  });
+  const iE = [];
+  ['poule','dinde'].forEach(sp => {
+    const k = sp === 'poule' ? 'IncubPoule' : 'IncubDinde';
+    const q = +document.getElementById('start'+k).value || 0;
+    const id = document.getElementById('start'+k+'Date').value || date;
+    if (q > 0) iE.push(buildIncubEntry(sp, q, id, note ? `Couveuse initiale - ${note}` : 'Couveuse initiale'));
+  });
+  const cash = +document.getElementById('startInitialCash').value || 0;
+  const tot = aE.reduce((s,e) => s+e.qty, 0) + eE.reduce((s,e) => s+e.qty, 0) + iE.reduce((s,e) => s+e.qty, 0);
+  if (tot === 0 && cash === 0) { alert('⚠️ Saisissez au moins une donnée'); return; }
+  if (replace) {
+    if (!confirm('🔄 REMPLACER toutes les données ?')) return;
+    data.initialCash = cash;
+    data.animals = aE; data.eggs = eE; data.incubations = iE;
+    data.sorties = []; data.eggExits = []; data.sales = []; data.expenses = [];
+    data.conversions = []; data.sicknesses = []; data.distributions = [];
+  } else {
+    if (data.animals.length > 0 || data.eggs.length > 0) {
+      if (!confirm('➕ Ajouter aux données existantes ?')) return;
+    }
+    data.initialCash += cash;
+    data.animals = data.animals.concat(aE);
+    data.eggs = data.eggs.concat(eE);
+    data.incubations = data.incubations.concat(iE);
+  }
+  save();
+  ['Poule','Coq','Dinde','Dindon','Poussin','Dindonneau','EggPoule','EggDinde','IncubPoule','IncubDinde'].forEach(t => {
+    const el = document.getElementById('start'+t); if (el) el.value = 0;
+    const p = document.getElementById('start'+t+'Price'); if (p) p.value = 0;
+  });
+  document.getElementById('startInitialCash').value = 0;
+  document.getElementById('startNote').value = '';
+  updateStartSummary(); renderAll();
+  alert(`✅ Enregistré !\n• Caisse : ${fmtMoney(cash)}\n• Animaux : ${aE.reduce((s,e)=>s+e.qty,0)}\n• Œufs : ${eE.reduce((s,e)=>s+e.qty,0)}`);
+  showSection('dashboard', document.querySelector('nav button'));
+}
+
+// ============ CHEPTEL ============
+function addAnimal(e) {
+  e.preventDefault();
+  data.animals.push({ id: Date.now()+Math.random(), type: animalType.value, qty: +animalQty.value, date: animalDate.value, price: +animalPrice.value, note: animalNote.value });
+  save(); e.target.reset(); load(); renderAll();
+}
+function deleteAnimal(id) { if (!confirm('Supprimer ?')) return; data.animals = data.animals.filter(a => a.id !== id); save(); renderAll(); }
+function addSortie(type, raison) {
+  const q = +prompt(`Quantité de ${typeLabel(type)}s (${raison}) ?`, '1');
+  if (!q || q <= 0) return;
+  data.sorties.push({ id: Date.now()+Math.random(), type, qty: q, date: new Date().toISOString().slice(0,10), raison });
+  save(); renderAll();
+}
+function deleteSortie(id) { if (!confirm('Supprimer ?')) return; data.sorties = data.sorties.filter(s => s.id !== id); save(); renderAll(); }
+function reportSickness(type) {
+  showSection('sante', document.querySelectorAll('nav button')[3]);
+  document.getElementById('sickType').value = type;
+  document.getElementById('sickQty').value = 1;
+  document.getElementById('sickDisease').focus();
+}
+function convertToAdult(id) {
+  const a = data.animals.find(x => x.id === id);
+  if (!a) return;
+  const isP = a.type === 'poussin';
+  const fT = isP ? 'poule' : 'dinde';
+  const mT = isP ? 'coq' : 'dindon';
+  const fL = isP ? 'poules' : 'dindes';
+  const mL = isP ? 'coqs' : 'dindons';
+  const f = +prompt(`🔍 Identification\n\n${a.qty} ${typeLabel(a.type)}s.\n\nCombien de ${fL} ?`, Math.floor(a.qty/2));
+  if (isNaN(f) || f < 0) return;
+  const m = +prompt(`Combien de ${mL} ?`, a.qty - f);
+  if (isNaN(m) || m < 0) return;
+  const tot = f + m;
+  if (tot === 0) { alert('Aucune conversion'); return; }
+  if (tot > a.qty) { alert(`❌ Total (${tot}) > stock (${a.qty})`); return; }
+  a.qty -= tot;
+  const today = new Date().toISOString().slice(0,10);
+  if (f > 0) data.animals.push({ id: Date.now()+Math.random()+0.1, type: fT, qty: f, date: today, price: 0, note: `Issu(s) de ${typeLabel(a.type)}s` });
+  if (m > 0) data.animals.push({ id: Date.now()+Math.random()+0.2, type: mT, qty: m, date: today, price: 0, note: `Issu(s) de ${typeLabel(a.type)}s` });
+  data.conversions.push({ id: Date.now()+Math.random(), date: today, from: a.type, females: f, males: m, femaleType: fT, maleType: mT });
+  if (a.qty <= 0) data.animals = data.animals.filter(x => x.id !== id);
+  save(); renderAll();
+  alert(`✅ Conversion :\n• ${f} ${fL}\n• ${m} ${mL}`);
+}
+
+// ============ SANTÉ ============
+function addSickness(e) {
+  e.preventDefault();
+  data.sicknesses.push({ id: Date.now()+Math.random(), date: sickDate.value, type: sickType.value, qty: +sickQty.value, disease: sickDisease.value, treatment: sickTreatment.value, note: sickNote.value });
+  save(); e.target.reset(); load(); renderAll();
+}
+function deleteSickness(id) { if (!confirm('Supprimer ?')) return; data.sicknesses = data.sicknesses.filter(s => s.id !== id); save(); renderAll(); }
+
+// ============ ŒUFS ============
+function addEggCollection(e) {
+  e.preventDefault();
+  const entry = { id: Date.now()+Math.random(), species: eggSpecies.value, date: eggDate.value, qty: +eggQty.value, note: eggNote.value };
+  const price = +eggPrice.value;
+  if (price > 0) entry.price = price;
+  data.eggs.push(entry);
+  save(); e.target.reset(); load(); renderAll();
+}
+function deleteEgg(id) { if (!confirm('Supprimer ?')) return; data.eggs = data.eggs.filter(x => x.id !== id); save(); renderAll(); }
+function addEggExit(e) {
+  e.preventDefault();
+  data.eggExits.push({ id: Date.now()+Math.random(), type: exitType.value, species: exitSpecies.value, date: exitDate.value, qty: +exitQty.value, value: +exitValue.value || 0, note: exitNote.value });
+  save(); e.target.reset(); load(); renderAll();
+}
+function deleteEggExit(id) { if (!confirm('Supprimer ?')) return; data.eggExits = data.eggExits.filter(x => x.id !== id); save(); renderAll(); }
+
+// ============ COUVEUSE ============
+function updateDefaultIncubDays() { incubDays.value = incubSpecies.value === 'poule' ? 21 : 28; }
+function addIncubation(e) {
+  e.preventDefault();
+  const sp = incubSpecies.value, days = +incubDays.value, margin = +incubMargin.value;
+  const s = new Date(incubDate.value);
+  const ed = new Date(s); ed.setDate(ed.getDate()+days);
+  const eMin = new Date(s); eMin.setDate(eMin.getDate()+Math.max(0, days-margin));
+  const eMax = new Date(s); eMax.setDate(eMax.getDate()+days+margin);
+  data.incubations.push({ id: Date.now()+Math.random(), date: incubDate.value, qty: +incubQty.value, species: sp, days, margin,
+    endDate: ed.toISOString().slice(0,10), endDateMin: eMin.toISOString().slice(0,10), endDateMax: eMax.toISOString().slice(0,10),
+    hatched: 0, addedToStock: 0, note: incubNote.value });
+  save(); e.target.reset(); load(); renderAll();
+}
+function adjustIncubation(id) {
+  const i = data.incubations.find(x => x.id === id); if (!i) return;
+  const nd = +prompt(`Durée actuelle : ${i.days} j.\nNouvelle durée :`, i.days);
+  if (!nd || nd <= 0) return;
+  const nm = +prompt(`Écart actuel : ${i.margin} j.\nNouvel écart :`, i.margin);
+  if (nm === null || nm < 0) return;
+  i.days = nd; i.margin = nm;
+  const s = new Date(i.date);
+  const ed = new Date(s); ed.setDate(ed.getDate()+nd); i.endDate = ed.toISOString().slice(0,10);
+  const eMin = new Date(s); eMin.setDate(eMin.getDate()+Math.max(0, nd-nm)); i.endDateMin = eMin.toISOString().slice(0,10);
+  const eMax = new Date(s); eMax.setDate(eMax.getDate()+nd+nm); i.endDateMax = eMax.toISOString().slice(0,10);
+  save(); renderAll();
+}
+function addHatch(id) {
+  const i = data.incubations.find(x => x.id === id); if (!i) return;
+  const rem = i.qty - (i.hatched||0);
+  const n = +prompt(`Combien d'éclosions ? (restants: ${rem})`, rem);
+  if (!n || n <= 0) return;
+  i.hatched = (i.hatched||0) + n; save();
+  const yT = i.species === 'poule' ? 'poussin' : 'dindonneau';
+  const yL = i.species === 'poule' ? 'poussins' : 'dindonneaux';
+  if (confirm(`🐣 ${n} ${yL} ont éclos !\n\nLes ajouter au cheptel ?`)) {
+    data.animals.push({ id: Date.now()+Math.random(), type: yT, qty: n, date: new Date().toISOString().slice(0,10), price: 0, note: `Issu(s) couveuse du ${i.date}` });
+    i.addedToStock = (i.addedToStock||0) + n; save();
+    alert(`✅ ${n} ${yL} ajoutés !`);
+  }
+  renderAll();
+}
+function deleteIncubation(id) { if (!confirm('Supprimer ?')) return; data.incubations = data.incubations.filter(i => i.id !== id); save(); renderAll(); }
+
+// ============ ALIMENTATION ============
+function addIngredient(e) {
+  e.preventDefault();
+  data.ingredients.push({ id: Date.now()+Math.random(), name: ingName.value, pricePerKg: +ingPrice.value });
+  save(); e.target.reset(); renderAll();
+}
+function deleteIngredient(id) { if (!confirm('Supprimer ?')) return; data.ingredients = data.ingredients.filter(i => i.id !== id); save(); renderAll(); }
+
+function addRationIngredientRow() {
+  const c = document.getElementById('rationIngredients');
+  const r = document.createElement('div');
+  r.className = 'ingredient-row';
+  r.innerHTML = `
+    <select class="ration-ing-select" onchange="updateRationSummary()">
+      <option value="">-- Ingrédient --</option>
+      ${data.ingredients.map(i => `<option value="${i.id}">${i.name} (${fmtMoney(i.pricePerKg)}/kg)</option>`).join('')}
+    </select>
+    <input type="number" class="ration-ing-percent" min="0" max="100" step="1" placeholder="%" onchange="updateRationSummary()">
+    <button type="button" class="btn small danger" onclick="this.parentElement.remove(); updateRationSummary();">🗑</button>
+  `;
+  c.appendChild(r);
+  updateRationSummary();
+}
+
+function updateRationSummary() {
+  const rows = document.querySelectorAll('#rationIngredients .ingredient-row');
+  let totP = 0, totC = 0, details = [];
+  rows.forEach(r => {
+    const sel = r.querySelector('.ration-ing-select');
+    const pct = r.querySelector('.ration-ing-percent');
+    if (sel && pct && sel.value && pct.value) {
+      const ing = data.ingredients.find(i => i.id == sel.value);
+      const p = +pct.value;
+      if (ing) {
+        totP += p;
+        const c = (p/100) * ing.pricePerKg;
+        totC += c;
+        details.push(`${p}% ${ing.name} = ${fmtMoney(c)}/kg`);
+      }
+    }
+  });
+  const s = document.getElementById('rationSummary');
+  if (details.length === 0) {
+    s.innerHTML = '<p style="color:var(--muted);font-style:italic;">Ajoutez des ingrédients pour voir le résumé</p>';
+  } else {
+    const ok = Math.abs(totP - 100) < 0.01;
+    s.innerHTML = `<div><strong>Composition :</strong></div>${details.map(d => `<div>• ${d}</div>`).join('')}<div style="margin-top:0.5rem;padding-top:0.5rem;border-top:1px solid var(--border);"><strong>Total : ${totP.toFixed(1)}%</strong> ${ok?'✅':'❌ (doit être 100%)'}<br><strong>Coût : ${fmtMoney(totC)}/kg</strong></div>`;
+  }
+}
+
+function addRation(e) {
+  e.preventDefault();
+  if (!rationName.value.trim()) { alert('⚠️ Veuillez donner un nom à la ration'); return; }
+  const rows = document.querySelectorAll('#rationIngredients .ingredient-row');
+  const ings = [];
+  let totP = 0, totC = 0;
+  let hasEmptySelection = false, hasEmptyPercent = false;
+  rows.forEach(r => {
+    const sel = r.querySelector('.ration-ing-select');
+    const pct = r.querySelector('.ration-ing-percent');
+    if (sel && pct) {
+      if (!sel.value) { hasEmptySelection = true; return; }
+      if (!pct.value || +pct.value <= 0) { hasEmptyPercent = true; return; }
+      const ing = data.ingredients.find(i => i.id == sel.value);
+      const p = +pct.value;
+      if (ing) { ings.push({ ingredientId: ing.id, percent: p }); totP += p; totC += (p/100) * ing.pricePerKg; }
+    }
+  });
+  if (ings.length === 0) {
+    if (hasEmptySelection) alert('⚠️ Veuillez sélectionner un ingrédient');
+    else if (hasEmptyPercent) alert('⚠️ Veuillez saisir un pourcentage valide');
+    else alert('⚠️ Ajoutez au moins un ingrédient\n\n💡 Cliquez sur "➕ Ajouter ingrédient"');
+    return;
+  }
+  if (hasEmptySelection) { alert('⚠️ Tous les ingrédients doivent être sélectionnés'); return; }
+  if (hasEmptyPercent) { alert('⚠️ Tous les ingrédients doivent avoir un pourcentage'); return; }
+  if (Math.abs(totP - 100) > 0.01) { alert(`❌ Le total doit être 100%\n\nActuellement : ${totP.toFixed(1)}%`); return; }
+  data.rations.push({ id: Date.now()+Math.random(), name: rationName.value, ingredients: ings, costPerKg: totC });
+  save();
+  e.target.reset();
+  document.getElementById('rationIngredients').innerHTML = '';
+  updateRationSummary();
+  renderAll();
+  alert(`✅ Ration créée !\n\nCoût : ${fmtMoney(totC)}/kg`);
+}
+
+function deleteRation(id) { if (!confirm('Supprimer ?')) return; data.rations = data.rations.filter(r => r.id !== id); save(); renderAll(); }
+
+function populateDistRationSelect() {
+  const sel = document.getElementById('distRation');
+  sel.innerHTML = data.rations.length ? data.rations.map(r => `<option value="${r.id}">${r.name} (${fmtMoney(r.costPerKg)}/kg)</option>`).join('') : '<option value="">-- Créez d\'abord une ration --</option>';
+}
+
+function updateDistSummary() {
+  const type = distType.value;
+  const rationId = distRation.value;
+  const grams = +distGrams.value || 0;
+  const stock = currentStock();
+  const nbAnimals = Math.max(0, stock[type] || 0);
+  const ration = data.rations.find(r => r.id == rationId);
+  const totalKg = (grams / 1000) * nbAnimals;
+  const costPerKg = ration ? ration.costPerKg : 0;
+  const totalCost = totalKg * costPerKg;
+  const c = document.getElementById('distSummaryContent');
+  if (nbAnimals === 0) { c.innerHTML = `<div class="warn">⚠️ Aucun(e) ${typeLabel(type)} dans le cheptel.</div>`; return; }
+  if (!ration) { c.innerHTML = `<div class="warn">⚠️ Sélectionnez une ration valide.</div>`; return; }
+  let warnMsg = '';
+  if (grams > 0 && (grams < 80 || grams > 150)) {
+    warnMsg = `<div class="warn">⚠️ Quantité hors plage recommandée (80g - 150g).</div>`;
+  }
+  c.innerHTML = `
+    <div class="line"><span>${typeBadge(type)}s dans le cheptel</span><strong>${nbAnimals} animal${nbAnimals>1?'s':''}</strong></div>
+    <div class="line"><span>⚖️ Quantité par animal</span><strong>${grams} g</strong></div>
+    <div class="line"><span>📦 Quantité totale</span><strong>${fmt(totalKg)} kg</strong></div>
+    <div class="line"><span>💰 Coût ration</span><strong>${fmtMoney(costPerKg)}/kg</strong></div>
+    <div class="line"><span>💵 Coût total</span><strong>${fmtMoney(totalCost)}</strong></div>
+    ${warnMsg}
+  `;
+}
+
+function addDistribution(e) {
+  e.preventDefault();
+  const type = distType.value;
+  const ration = data.rations.find(x => x.id == distRation.value);
+  if (!ration) { alert('❌ Sélectionnez une ration'); return; }
+  const stock = currentStock();
+  const nbAnimals = Math.max(0, stock[type] || 0);
+  if (nbAnimals === 0) { alert(`⚠️ Aucun(e) ${typeLabel(type)} dans le cheptel.`); return; }
+  const grams = +distGrams.value;
+  if (!grams || grams <= 0) { alert('⚠️ Quantité invalide'); return; }
+  if (grams < 80 || grams > 150) {
+    if (!confirm(`⚠️ Quantité ${grams}g hors plage recommandée (80-150g).\n\nContinuer ?`)) return;
+  }
+  const totalKg = (grams / 1000) * nbAnimals;
+  const totalCost = totalKg * ration.costPerKg;
+  data.distributions.push({
+    id: Date.now()+Math.random(), date: distDate.value, type, rationId: ration.id, rationName: ration.name,
+    gramsPerAnimal: grams, nbAnimals, qty: totalKg, costPerKg: ration.costPerKg, totalCost, note: distNote.value
+  });
+  data.expenses.push({
+    id: Date.now()+Math.random()+0.1, date: distDate.value, category: 'alimentation', amount: totalCost, units: nbAnimals,
+    desc: `Alimentation ${nbAnimals} ${typeLabel(type)}s - ${ration.name} (${grams}g × ${nbAnimals} = ${fmt(totalKg)}kg)`
+  });
+  save();
+  e.target.reset();
+  distGrams.value = 120;
+  load();
+  renderAll();
+  alert(`✅ Distribution enregistrée !\n\n• ${nbAnimals} × ${grams}g = ${fmt(totalKg)} kg\n• Coût : ${fmtMoney(totalCost)}`);
+}
+
+function deleteDistribution(id) {
+  if (!confirm('Supprimer ?\nLa dépense associée sera aussi supprimée.')) return;
+  const d = data.distributions.find(x => x.id === id);
+  if (d) {
+    data.expenses = data.expenses.filter(e => !(e.category === 'alimentation' && e.desc.includes(d.rationName) && Math.abs(e.amount - d.totalCost) < 0.01 && e.date === d.date));
+  }
+  data.distributions = data.distributions.filter(x => x.id !== id);
+  save(); renderAll();
+}
+
+// ============ VENTES ============
+function toggleSaleSpecies() { document.getElementById('saleSpeciesWrap').style.display = saleType.value === 'oeuf' ? 'block' : 'none'; }
+function addSale(e) {
+  e.preventDefault();
+  const s = { id: Date.now()+Math.random(), date: saleDate.value, type: saleType.value, qty: +saleQty.value, price: +salePrice.value, note: saleNote.value };
+  if (s.type === 'oeuf') s.species = saleSpecies.value;
+  data.sales.push(s); save(); e.target.reset(); load(); renderAll();
+}
+function deleteSale(id) { if (!confirm('Supprimer ?')) return; data.sales = data.sales.filter(s => s.id !== id); save(); renderAll(); }
+
+// ============ DÉPENSES ============
+function addExpense(e) {
+  e.preventDefault();
+  data.expenses.push({ id: Date.now()+Math.random(), date: expDate.value, category: expCategory.value, amount: +expAmount.value, units: +expUnits.value || 0, desc: expDesc.value });
+  save(); e.target.reset(); load(); renderAll();
+}
+function deleteExpense(id) { if (!confirm('Supprimer ?')) return; data.expenses = data.expenses.filter(x => x.id !== id); save(); renderAll(); }
+
+// ============ DÉMO ============
+function loadDemo() {
+  if (data.animals.length > 0 || data.eggs.length > 0) {
+    if (!confirm('⚠️ Remplacer par la démo ?')) return;
+  }
+  const d = (o) => { const dt = new Date(2026, 10, 19); dt.setDate(dt.getDate() + o); return dt.toISOString().slice(0,10); };
+  let id = 1; const n = () => id++;
+  const iM = n(), iS = n(), iSo = n(), iC = n();
+  const rP = n(), rCr = n();
+  data = {
+    initialCash: 5000,
+    animals: [
+      { id: n(), type: 'poule', qty: 20, date: d(-45), price: 65, note: 'Pondeuses' },
+      { id: n(), type: 'coq', qty: 2, date: d(-45), price: 85, note: '' },
+      { id: n(), type: 'dinde', qty: 5, date: d(-45), price: 120, note: '' },
+      { id: n(), type: 'dindon', qty: 2, date: d(-45), price: 150, note: '' },
+      { id: n(), type: 'poussin', qty: 12, date: d(-25), price: 0, note: 'À sexer' }
+    ],
+    sorties: [], conversions: [],
+    sicknesses: [{ id: n(), date: d(-10), type: 'poule', qty: 3, disease: 'Coccidiose', treatment: 'Amprolium', note: '2 guéries, 1 morte' }],
+    eggs: [
+      { id: n(), species: 'poule', date: d(-18), qty: 14, price: 1.5, note: '' },
+      { id: n(), species: 'poule', date: d(-17), qty: 15, price: 1.5, note: '' },
+      { id: n(), species: 'poule', date: d(-16), qty: 16, price: 1.5, note: '' },
+      { id: n(), species: 'poule', date: d(-15), qty: 13, price: 1.5, note: '' },
+      { id: n(), species: 'poule', date: d(-14), qty: 17, price: 1.5, note: '' },
+      { id: n(), species: 'poule', date: d(-13), qty: 15, price: 1.5, note: '' },
+      { id: n(), species: 'poule', date: d(-12), qty: 18, price: 1.5, note: 'Record !' },
+      { id: n(), species: 'poule', date: d(-11), qty: 14, price: 1.5, note: '' },
+      { id: n(), species: 'poule', date: d(-10), qty: 16, price: 1.5, note: '' },
+      { id: n(), species: 'poule', date: d(-9), qty: 15, price: 1.5, note: '' },
+      { id: n(), species: 'poule', date: d(-8), qty: 17, price: 1.5, note: '' },
+      { id: n(), species: 'poule', date: d(-7), qty: 14, price: 1.5, note: '' },
+      { id: n(), species: 'poule', date: d(-6), qty: 16, price: 1.5, note: '' },
+      { id: n(), species: 'poule', date: d(-5), qty: 15, price: 1.5, note: '' },
+      { id: n(), species: 'poule', date: d(-4), qty: 17, price: 1.5, note: '' },
+      { id: n(), species: 'poule', date: d(-3), qty: 14, price: 1.5, note: '' },
+      { id: n(), species: 'poule', date: d(-2), qty: 16, price: 1.5, note: '' },
+      { id: n(), species: 'poule', date: d(-1), qty: 15, price: 1.5, note: '' },
+      { id: n(), species: 'dinde', date: d(-15), qty: 3, price: 3, note: '' },
+      { id: n(), species: 'dinde', date: d(-12), qty: 4, price: 3, note: '' },
+      { id: n(), species: 'dinde', date: d(-9), qty: 3, price: 3, note: '' },
+      { id: n(), species: 'dinde', date: d(-6), qty: 4, price: 3, note: '' },
+      { id: n(), species: 'dinde', date: d(-3), qty: 3, price: 3, note: '' }
+    ],
+    eggExits: [{ id: n(), type: 'casse', species: 'poule', date: d(-4), qty: 2, value: 3, note: 'Tombé' }],
+    incubations: [{ id: n(), date: d(-14), qty: 30, species: 'poule', days: 21, margin: 3, endDate: d(7), endDateMin: d(4), endDateMax: d(10), hatched: 22, addedToStock: 22, note: 'Lot A' }],
+    ingredients: [
+      { id: iM, name: 'Maïs', pricePerKg: 3.5 },
+      { id: iS, name: 'Son de blé', pricePerKg: 2.0 },
+      { id: iSo, name: 'Tourteau de soja', pricePerKg: 6.0 },
+      { id: iC, name: 'Concentré poule', pricePerKg: 8.0 }
+    ],
+    rations: [
+      { id: rP, name: 'Ration pondeuses', ingredients: [{ingredientId:iM,percent:50},{ingredientId:iS,percent:20},{ingredientId:iSo,percent:20},{ingredientId:iC,percent:10}], costPerKg: 4.55 },
+      { id: rCr, name: 'Ration croissance', ingredients: [{ingredientId:iM,percent:60},{ingredientId:iS,percent:25},{ingredientId:iC,percent:15}], costPerKg: 4.30 }
+    ],
+    distributions: [
+      { id: n(), date: d(-3), type: 'poule', rationId: rP, rationName: 'Ration pondeuses', gramsPerAnimal: 120, nbAnimals: 20, qty: 2.4, costPerKg: 4.55, totalCost: 10.92, note: '' },
+      { id: n(), date: d(-2), type: 'poule', rationId: rP, rationName: 'Ration pondeuses', gramsPerAnimal: 120, nbAnimals: 20, qty: 2.4, costPerKg: 4.55, totalCost: 10.92, note: '' },
+      { id: n(), date: d(-1), type: 'poule', rationId: rP, rationName: 'Ration pondeuses', gramsPerAnimal: 120, nbAnimals: 20, qty: 2.4, costPerKg: 4.55, totalCost: 10.92, note: '' },
+      { id: n(), date: d(-2), type: 'poussin', rationId: rCr, rationName: 'Ration croissance', gramsPerAnimal: 100, nbAnimals: 12, qty: 1.2, costPerKg: 4.30, totalCost: 5.16, note: '' }
+    ],
+    sales: [
+      { id: n(), date: d(-3), type: 'oeuf', species: 'poule', qty: 30, price: 1.5, note: 'Mme Fatima' },
+      { id: n(), date: d(-1), type: 'oeuf', species: 'poule', qty: 25, price: 1.5, note: 'M. Ahmed' }
+    ],
+    expenses: [
+      { id: n(), date: d(-3), category: 'alimentation', amount: 10.92, units: 20, desc: 'Alimentation 20 poules - Ration pondeuses' },
+      { id: n(), date: d(-2), category: 'alimentation', amount: 16.08, units: 32, desc: 'Alimentation mixte' },
+      { id: n(), date: d(-1), category: 'alimentation', amount: 10.92, units: 20, desc: 'Alimentation 20 poules' }
+    ]
+  };
+  save();
+  setEggPeriod('all');
+  renderAll();
+  alert('✅ Démo chargée !\n\n• 📊 18 jours de collecte de poule\n• 🥚 5 jours de collecte de dinde\n• 📈 Histogramme visible sur "Tout"');
+}
+
+// ============ RENDER ============
+function renderAll() {
+  renderDashboard(); renderCheptel(); renderSante(); renderEggs(); renderIncubation();
+  renderAlimentation(); renderSales(); renderExpenses(); renderCaisse(); renderBilan();
+}
+
+function renderDashboard() {
+  const s = currentStock();
+  const tA = Object.values(s).reduce((a,b) => a + Math.max(0,b), 0);
+  const tAd = s.poule + s.coq + s.dinde + s.dindon;
+  const tJ = s.poussin + s.dindonneau;
+  const eP = eggsBySpecies('poule'), eD = eggsBySpecies('dinde');
+  const cash = data.initialCash + totalSales() - totalExpenses();
+  const h = document.getElementById('dashboardHelper');
+  if (tA === 0 && data.eggs.length === 0 && data.incubations.length === 0 && data.initialCash === 0) {
+    h.innerHTML = `<div class="info-box warning" style="text-align:center;padding:1.5rem;"><h3 style="color:var(--primary-dark);margin-bottom:0.5rem;">👋 Bienvenue !</h3><p style="margin-bottom:1rem;">Commencez par saisir vos données.</p><button class="btn" onclick="showSection('start', document.querySelectorAll('nav button')[1])">🚀 Saisir</button> <button class="btn demo" onclick="loadDemo()">📋 Démo</button></div>`;
+  } else h.innerHTML = '';
+  const stats = [
+    {l:'🏦 Solde caisse', v: fmtMoney(cash), c: cash >= 0 ? 'cash' : 'danger'},
+    {l:'🐔 Total animaux', v: tA, c: ''},
+    {l:'🐓 Adultes', v: tAd, c: 'accent'},
+    {l:'🐥 Jeunes', v: tJ, c: 'info'},
+    {l:'🐔 Poules', v: Math.max(0,s.poule), c: 'accent'},
+    {l:'🐓 Coqs', v: Math.max(0,s.coq), c: 'accent'},
+    {l:'🦃 Dindes', v: Math.max(0,s.dinde), c: 'accent'},
+    {l:'🦃 Dindons', v: Math.max(0,s.dindon), c: 'accent'},
+    {l:'🐥 Poussins', v: Math.max(0,s.poussin), c: 'info'},
+    {l:'🐣 Dindonneaux', v: Math.max(0,s.dindonneau), c: 'info'},
+    {l:'🥚 Œufs poule', v: eP.available, c: 'warning'},
+    {l:'🥚 Œufs dinde', v: eD.available, c: 'warning'},
+    {l:'🐣 En couveuse', v: eggsInIncubation(), c: 'warning'},
+    {l:'🍽️ Coût aliment.', v: fmtMoney(totalFeedCost()), c: 'feed'},
+    {l:'💰 Recettes', v: fmtMoney(totalSales()), c: 'success'},
+    {l:'💸 Dépenses', v: fmtMoney(totalExpenses()), c: 'danger'},
+    {l:'📉 Pertes', v: fmtMoney(totalEggLossValue()), c: 'danger'}
+  ];
+  document.getElementById('dashStats').innerHTML = stats.map(s => `<div class="card ${s.c}"><h4>${s.l}</h4><div class="value">${s.v}</div></div>`).join('');
+  const all = [
+    ...data.distributions.map(d => ({date:d.date, txt:`🍽️ ${d.nbAnimals||'?'} ${typeLabel(d.type)}s × ${d.gramsPerAnimal||'?'}g = ${fmt(d.qty)}kg (${fmtMoney(d.totalCost)})`})),
+    ...data.sicknesses.map(s => ({date:s.date, txt:`🤒 Maladie: ${s.qty} ${typeLabel(s.type)} - ${s.disease}`})),
+    ...data.conversions.map(c => ({date:c.date, txt:`🔍 Conversion: ${c.females} ${typeLabel(c.femaleType)} + ${c.males} ${typeLabel(c.maleType)}`})),
+    ...data.sales.map(s => ({date:s.date, txt:`💰 Vente: ${s.qty} ${typeLabel(s.type)} → ${fmtMoney(s.qty*s.price)}`})),
+    ...data.expenses.map(e => ({date:e.date, txt:`💸 Dépense: ${categoryLabel(e.category)} → ${fmtMoney(e.amount)}`})),
+    ...data.eggs.map(e => ({date:e.date, txt:`🥚 Collecte: ${e.qty} œufs ${e.species}`})),
+    ...data.animals.map(a => ({date:a.date, txt:`➕ Entrée: ${a.qty} ${typeLabel(a.type)}(s)`}))
+  ].sort((a,b) => b.date.localeCompare(a.date)).slice(0,12);
+  document.getElementById('recentActivity').innerHTML = all.length ?
+    `<table><thead><tr><th>Date</th><th>Événement</th></tr></thead><tbody>${all.map(a => `<tr><td>${a.date}</td><td>${a.txt}</td></tr>`).join('')}</tbody></table>` :
+    '<p class="empty">Aucune activité.</p>';
+}
+
+function renderCheptel() {
+  const s = currentStock();
+  const types = ['poule','coq','dinde','dindon','poussin','dindonneau'];
+  document.getElementById('cheptelStats').innerHTML = types.map(t => {
+    const v = Math.max(0, s[t]);
+    const y = (t === 'poussin' || t === 'dindonneau');
+    return `<div class="card ${y?'info':''}"><h4>${typeBadge(t)}s</h4><div class="value">${v}</div><div style="margin-top:0.5rem;display:flex;gap:0.3rem;flex-wrap:wrap;"><button class="btn small danger" onclick="addSortie('${t}','mortalité')">☠ Mort</button><button class="btn small info" onclick="reportSickness('${t}')">🤒 Maladie</button></div></div>`;
+  }).join('');
+  document.getElementById('cheptelTable').innerHTML = data.animals.length ?
+    data.animals.slice().reverse().map(a => {
+      const y = (a.type === 'poussin' || a.type === 'dindonneau');
+      return `<tr><td>${a.date}</td><td><span class="badge ${a.type}">${typeBadge(a.type)}</span></td><td>${a.qty}</td><td>${fmtMoney(a.price)}</td><td>${a.note||'-'}</td><td class="actions-cell">${y && a.qty > 0 ? `<button class="btn small info" onclick="convertToAdult(${a.id})">🔍</button>` : ''}<button class="btn small danger" onclick="deleteAnimal(${a.id})">🗑</button></td></tr>`;
+    }).join('') : '<tr><td colspan="6" class="empty">Aucune entrée</td></tr>';
+  document.getElementById('sortiesTable').innerHTML = data.sorties.length ?
+    data.sorties.slice().reverse().map(s => `<tr><td>${s.date}</td><td><span class="badge ${s.type}">${typeBadge(s.type)}</span></td><td>${s.qty}</td><td>${s.raison}</td><td><button class="btn small danger" onclick="deleteSortie(${s.id})">🗑</button></td></tr>`).join('') :
+    '<tr><td colspan="5" class="empty">Aucune sortie</td></tr>';
+}
+
+function renderSante() {
+  document.getElementById('sicknessTable').innerHTML = data.sicknesses.length ?
+    data.sicknesses.slice().reverse().map(s => `<tr><td>${s.date}</td><td><span class="badge ${s.type}">${typeBadge(s.type)}</span></td><td>${s.qty}</td><td><strong>${s.disease}</strong></td><td>${s.treatment||'-'}</td><td>${s.note||'-'}</td><td><button class="btn small danger" onclick="deleteSickness(${s.id})">🗑</button></td></tr>`).join('') :
+    '<tr><td colspan="7" class="empty">Aucun cas. Bonne santé ! 🎉</td></tr>';
+}
+
+// ============ HISTOGRAMME CORRIGÉ ============
+function renderEggChart() {
+  const filteredEggs = data.eggs.filter(e => isInPeriod(e.date, eggPeriod));
+  
+  const byDate = {};
+  filteredEggs.forEach(e => {
+    if (!byDate[e.date]) byDate[e.date] = { poule: 0, dinde: 0 };
+    byDate[e.date][e.species] += e.qty;
+  });
+  
+  const dates = Object.keys(byDate).sort();
+  
+  let totalQty = 0;
+  let maxDay = { date: '-', qty: 0 };
+  let minDay = { date: '-', qty: Infinity };
+  const dailyTotals = [];
+  
+  dates.forEach(d => {
+    const dayTotal = byDate[d].poule + byDate[d].dinde;
+    totalQty += dayTotal;
+    dailyTotals.push(dayTotal);
+    if (dayTotal > maxDay.qty) maxDay = { date: d, qty: dayTotal };
+    if (dayTotal < minDay.qty) minDay = { date: d, qty: dayTotal };
+  });
+  
+  const avgPerDay = dates.length > 0 ? totalQty / dates.length : 0;
+  if (minDay.qty === Infinity) minDay = { date: '-', qty: 0 };
+  
+  document.getElementById('chartStats').innerHTML = `
+    <div class="chart-stat success"><h5>📊 Total collecté</h5><div class="val">${totalQty} œufs</div></div>
+    <div class="chart-stat info"><h5>📈 Moyenne / jour</h5><div class="val">${fmt(avgPerDay)}</div></div>
+    <div class="chart-stat warning"><h5>🏆 Record</h5><div class="val">${maxDay.qty} œufs</div><small style="font-size:0.75rem; color:var(--muted);">${maxDay.date}</small></div>
+    <div class="chart-stat danger"><h5>📉 Minimum</h5><div class="val">${minDay.qty} œufs</div><small style="font-size:0.75rem; color:var(--muted);">${minDay.date}</small></div>
+  `;
+  
+  const barsContainer = document.getElementById('chartBars');
+  const yAxis = document.getElementById('yAxis');
+  
+  if (dates.length === 0) {
+    barsContainer.innerHTML = '<div class="chart-no-data">📭 Aucune collecte sur cette période</div>';
+    yAxis.innerHTML = '';
+    return;
+  }
+  
+  const maxVal = Math.max(...dailyTotals, 1);
+  const niceMax = Math.ceil(maxVal / 5) * 5 || 5;
+  
+  let yHtml = '';
+  for (let i = 0; i <= 5; i++) {
+    const val = Math.round((niceMax / 5) * i);
+    yHtml += `<span>${val}</span>`;
+  }
+  yAxis.innerHTML = yHtml;
+  
+  let barsHtml = '';
+  dates.forEach((date) => {
+    const poule = byDate[date].poule;
+    const dinde = byDate[date].dinde;
+    const total = poule + dinde;
+    
+    const pouleHeight = (poule / niceMax) * 100;
+    const dindeHeight = (dinde / niceMax) * 100;
+    
+    const dateObj = new Date(date);
+    const shortDate = `${String(dateObj.getDate()).padStart(2,'0')}/${String(dateObj.getMonth()+1).padStart(2,'0')}`;
+    
+    const tooltipContent = `<strong>${date}</strong><br>🥚 Poule : ${poule}<br>🥚 Dinde : ${dinde}<br><strong>Total : ${total}</strong>`;
+    
+    barsHtml += `
+      <div class="bar-group">
+        <div class="bar-tooltip">${tooltipContent}</div>
+        <div class="bar-stack">
+          ${poule > 0 ? `<div class="bar poule" style="height:${pouleHeight}%;"></div>` : ''}
+          ${dinde > 0 ? `<div class="bar dinde" style="height:${dindeHeight}%;"></div>` : ''}
+        </div>
+        <div class="bar-label">${shortDate}</div>
+      </div>
+    `;
+  });
+  
+  barsContainer.innerHTML = barsHtml;
+}
+
+function renderEggs() {
+  const p = eggsBySpecies('poule'), d = eggsBySpecies('dinde');
+  document.getElementById('eggsStock').innerHTML = `
+    <div class="card accent"><h4>🥚 Œufs poule</h4><div class="value">${p.available}</div><small>Collectés: ${p.collected} | Couveuse: ${p.incubated} | Vendus: ${p.sold} | Sorties: ${p.exits}</small></div>
+    <div class="card accent"><h4>🥚 Œufs dinde</h4><div class="value">${d.available}</div><small>Collectés: ${d.collected} | Couveuse: ${d.incubated} | Vendus: ${d.sold} | Sorties: ${d.exits}</small></div>`;
+  
+  renderEggChart();
+  
+  document.getElementById('eggsTable').innerHTML = data.eggs.length ?
+    data.eggs.slice().reverse().map(e => {
+      const price = e.price || getEggAveragePrice(e.species);
+      const value = e.qty * price;
+      return `<tr><td>${e.date}</td><td><span class="badge ${e.species}">${e.species}</span></td><td>${e.qty}</td><td>${fmtMoney(price)}</td><td>${fmtMoney(value)}</td><td>${e.note||'-'}</td><td><button class="btn small danger" onclick="deleteEgg(${e.id})">🗑</button></td></tr>`;
+    }).join('') :
+    '<tr><td colspan="7" class="empty">Aucune collecte</td></tr>';
+  document.getElementById('exitsTable').innerHTML = data.eggExits.length ?
+    data.eggExits.slice().reverse().map(e => `<tr><td>${e.date}</td><td><span class="badge ${e.type}">${e.type}</span></td><td><span class="badge ${e.species}">${e.species}</span></td><td>${e.qty}</td><td>${e.value>0?fmtMoney(e.value):'-'}</td><td>${e.note||'-'}</td><td><button class="btn small danger" onclick="deleteEggExit(${e.id})">🗑</button></td></tr>`).join('') :
+    '<tr><td colspan="7" class="empty">Aucune sortie</td></tr>';
+}
+
+function renderIncubation() {
+  const today = new Date();
+  document.getElementById('incubTable').innerHTML = data.incubations.length ?
+    data.incubations.slice().reverse().map(i => {
+      const s = new Date(i.date);
+      const dp = Math.floor((today-s)/(1000*60*60*24));
+      const pr = Math.min(100, Math.round(dp/i.days*100));
+      const rem = i.qty - (i.hatched||0);
+      const ad = i.addedToStock || 0;
+      return `<tr><td>${i.date}</td><td><span class="badge ${i.species}">${i.species}</span></td><td>${i.qty}</td><td><div>${i.hatched||0} / ${i.qty}</div>${ad>0?`<small style="color:var(--success)">✓ ${ad} ajouté(s)</small>`:''}</td><td><strong>${i.days} j</strong> (±${i.margin})</td><td><div><strong>${i.endDateMin}</strong></div><div class="range-info">au <strong>${i.endDateMax}</strong></div></td><td><div class="progress"><div class="progress-bar" style="width:${pr}%"></div></div><small>${dp}/${i.days} j (${pr}%)</small></td><td class="actions-cell">${rem>0?`<button class="btn small" onclick="addHatch(${i.id})">🐣</button>`:''}<button class="btn small accent" onclick="adjustIncubation(${i.id})">⚙️</button><button class="btn small danger" onclick="deleteIncubation(${i.id})">🗑</button></td></tr>`;
+    }).join('') : '<tr><td colspan="8" class="empty">Aucun lot</td></tr>';
+}
+
+function renderAlimentation() {
+  document.getElementById('ingredientsTable').innerHTML = data.ingredients.length ?
+    data.ingredients.map(i => `<tr><td>${i.name}</td><td>${fmtMoney(i.pricePerKg)}/kg</td><td><button class="btn small danger" onclick="deleteIngredient(${i.id})">🗑</button></td></tr>`).join('') :
+    '<tr><td colspan="3" class="empty">Aucun ingrédient.</td></tr>';
+  document.getElementById('rationsTable').innerHTML = data.rations.length ?
+    data.rations.map(r => {
+      const comp = r.ingredients.map(ri => {
+        const ing = data.ingredients.find(i => i.id === ri.ingredientId);
+        return ing ? `${ri.percent}% ${ing.name}` : '?';
+      }).join(', ');
+      return `<tr><td>${r.name}</td><td>${comp}</td><td>${fmtMoney(r.costPerKg)}/kg</td><td><button class="btn small danger" onclick="deleteRation(${r.id})">🗑</button></td></tr>`;
+    }).join('') : '<tr><td colspan="4" class="empty">Aucune ration</td></tr>';
+  populateDistRationSelect();
+  updateDistSummary();
+  document.getElementById('distributionsTable').innerHTML = data.distributions.length ?
+    data.distributions.slice().reverse().map(d => `<tr>
+      <td>${d.date}</td>
+      <td><span class="badge ${d.type}">${typeBadge(d.type)}</span></td>
+      <td>${d.rationName}</td>
+      <td><strong>${d.gramsPerAnimal||'-'} g</strong></td>
+      <td>${d.nbAnimals||'-'}</td>
+      <td>${fmt(d.qty)} kg</td>
+      <td><strong>${fmtMoney(d.totalCost)}</strong></td>
+      <td>${d.note||'-'}</td>
+      <td><button class="btn small danger" onclick="deleteDistribution(${d.id})">🗑</button></td>
+    </tr>`).join('') :
+    '<tr><td colspan="9" class="empty">Aucune distribution</td></tr>';
+  const types = ['poule','coq','dinde','dindon','poussin','dindonneau'];
+  document.getElementById('feedCostStats').innerHTML = types.map(t => {
+    const c = feedCostByType(t);
+    return `<div class="card feed"><h4>${typeBadge(t)}s</h4><div class="value">${fmtMoney(c)}</div></div>`;
+  }).join('') + `<div class="card success"><h4>📊 TOTAL</h4><div class="value">${fmtMoney(totalFeedCost())}</div></div>`;
+}
+
+function renderSales() {
+  document.getElementById('salesTable').innerHTML = data.sales.length ?
+    data.sales.slice().reverse().map(s => `<tr><td>${s.date}</td><td><span class="badge ${s.type}">${typeBadge(s.type)}</span></td><td>${s.type==='oeuf'?`<span class="badge ${s.species||'poule'}">${s.species||'poule'}</span>`:'-'}</td><td>${s.qty}</td><td>${fmtMoney(s.price)}</td><td><strong>${fmtMoney(s.qty*s.price)}</strong></td><td>${s.note||'-'}</td><td><button class="btn small danger" onclick="deleteSale(${s.id})">🗑</button></td></tr>`).join('') :
+    '<tr><td colspan="8" class="empty">Aucune vente</td></tr>';
+}
+
+function renderExpenses() {
+  document.getElementById('expensesTable').innerHTML = data.expenses.length ?
+    data.expenses.slice().reverse().map(e => `<tr><td>${e.date}</td><td>${categoryLabel(e.category)}</td><td><strong>${fmtMoney(e.amount)}</strong></td><td>${e.units||'-'}</td><td>${e.units>0?fmtMoney(e.amount/e.units):'-'}</td><td>${e.desc||'-'}</td><td><button class="btn small danger" onclick="deleteExpense(${e.id})">🗑</button></td></tr>`).join('') :
+    '<tr><td colspan="7" class="empty">Aucune dépense</td></tr>';
+}
+
+function renderCaisse() {
+  const cr = totalSales(), db = totalExpenses();
+  const solde = data.initialCash + cr - db;
+  document.getElementById('caisseStats').innerHTML = `
+    <div class="card cash"><h4>🏦 Solde initial</h4><div class="value">${fmtMoney(data.initialCash)}</div></div>
+    <div class="card success"><h4>📈 Crédits (Ventes)</h4><div class="value">${fmtMoney(cr)}</div></div>
+    <div class="card danger"><h4>📉 Débits (Dépenses)</h4><div class="value">${fmtMoney(db)}</div></div>
+    <div class="card ${solde>=0?'success':'danger'}"><h4>💰 Solde actuel</h4><div class="value">${fmtMoney(solde)}</div></div>`;
+  const mv = [
+    {date:'Initial', type:'Caisse', motif:'Solde de démarrage', montant:data.initialCash, impact:'●'},
+    ...data.sales.map(s => ({date:s.date, type:'Crédit', motif:`Vente: ${s.qty} ${typeLabel(s.type)}`, montant:s.qty*s.price, impact:'▲'})),
+    ...data.expenses.map(e => ({date:e.date, type:'Débit', motif:`${categoryLabel(e.category)}: ${e.desc}`, montant:e.amount, impact:'▼'}))
+  ].sort((a,b) => { if (a.date==='Initial') return -1; if (b.date==='Initial') return 1; return b.date.localeCompare(a.date); }).slice(0,15);
+  document.getElementById('caisseTable').innerHTML = mv.map(m => {
+    const cls = m.type==='Crédit'?'success':(m.type==='Débit'?'danger':'accent');
+    const col = m.impact==='▲'?'var(--success)':(m.impact==='▼'?'var(--danger)':'var(--primary)');
+    return `<tr><td>${m.date}</td><td><span class="badge ${cls}">${m.type}</span></td><td>${m.motif}</td><td><strong>${fmtMoney(m.montant)}</strong></td><td style="color:${col};font-weight:bold;">${m.impact}</td></tr>`;
+  }).join('');
+}
+
+function renderBilan() {
+  const r = totalSales(), d = totalExpenses(), p = totalEggLossValue();
+  const b = r - d - p;
+  document.getElementById('bilanStats').innerHTML = `
+    <div class="card success"><h4>💰 Recettes</h4><div class="value">${fmtMoney(r)}</div></div>
+    <div class="card danger"><h4>💸 Dépenses</h4><div class="value">${fmtMoney(d)}</div></div>
+    <div class="card danger"><h4>📉 Pertes (casse)</h4><div class="value">${fmtMoney(p)}</div></div>
+    <div class="card ${b>=0?'success':'danger'}"><h4>📊 Bénéfice net</h4><div class="value">${fmtMoney(b)}</div></div>
+    <div class="card accent"><h4>📈 Marge</h4><div class="value">${r>0?((b/r)*100).toFixed(1):'0'}%</div></div>`;
+  
+  const cats = {};
+  data.expenses.filter(e => isInPeriod(e.date)).forEach(e => cats[e.category] = (cats[e.category]||0) + e.amount);
+  document.getElementById('depBreakdown').innerHTML = Object.keys(cats).length ?
+    Object.entries(cats).map(([k,v]) => `<div class="card danger"><h4>${categoryLabel(k)}</h4><div class="value">${fmtMoney(v)}</div><small>${d>0?((v/d)*100).toFixed(1):'0'}% du total</small></div>`).join('') : '<p class="empty">Aucune dépense sur cette période</p>';
+  
+  const vs = {};
+  data.sales.filter(s => isInPeriod(s.date)).forEach(s => {
+    let k = s.type === 'oeuf' ? `œufs ${s.species||'poule'}` : (s.type === 'poussin' ? '🐥 poussins' : (s.type === 'dindonneau' ? '🐣 dindonneaux' : typeLabel(s.type)));
+    vs[k] = (vs[k]||0) + s.qty*s.price;
+  });
+  document.getElementById('salesBreakdown').innerHTML = Object.keys(vs).length ?
+    Object.entries(vs).map(([k,v]) => `<div class="card success"><h4>${k}</h4><div class="value">${fmtMoney(v)}</div><small>${r>0?((v/r)*100).toFixed(1):'0'}% du total</small></div>`).join('') : '<p class="empty">Aucune vente sur cette période</p>';
+  
+  const lo = {};
+  data.eggExits.filter(e => e.type === 'casse' && isInPeriod(e.date)).forEach(e => { lo[`${e.type} (${e.species})`] = (lo[`${e.type} (${e.species})`]||0) + (e.value||0); });
+  document.getElementById('lossBreakdown').innerHTML = Object.keys(lo).length ?
+    Object.entries(lo).map(([k,v]) => `<div class="card danger"><h4>${k}</h4><div class="value">${fmtMoney(v)}</div></div>`).join('') : '<p class="empty">Aucune perte sur cette période</p>';
+  
+  const consumption = getIngredientsConsumption();
+  const totalKgConsumed = consumption.reduce((s,c) => s + c.qty, 0);
+  const totalCostConsumed = consumption.reduce((s,c) => s + c.cost, 0);
+  document.getElementById('ingredientsConsumptionTable').innerHTML = consumption.length ?
+    consumption.map(c => {
+      const percent = totalKgConsumed > 0 ? (c.qty / totalKgConsumed * 100).toFixed(1) : 0;
+      return `<tr><td><strong>${c.name}</strong></td><td>${fmt(c.qty)} kg</td><td>${fmtMoney(c.pricePerKg)}/kg</td><td><strong>${fmtMoney(c.cost)}</strong></td><td>${percent}%</td></tr>`;
+    }).join('') + `<tr style="background:#e7f5ef; font-weight:bold;"><td>📊 TOTAL</td><td>${fmt(totalKgConsumed)} kg</td><td>-</td><td>${fmtMoney(totalCostConsumed)}</td><td>100%</td></tr>` :
+    '<tr><td colspan="5" class="empty">Aucune consommation sur cette période</td></tr>';
+  document.getElementById('ingredientsConsumptionCards').innerHTML = consumption.length ?
+    consumption.map(c => `<div class="card feed"><h4>🌾 ${c.name}</h4><div class="value">${fmt(c.qty)} kg</div><small>${fmtMoney(c.cost)} • ${fmtMoney(c.pricePerKg)}/kg</small></div>`).join('') : '<p class="empty">Aucune donnée</p>';
+  
+  const eggValue = getEggCollectionValue();
+  const totalEggValue = eggValue.poule.value + eggValue.dinde.value;
+  const totalEggQty = eggValue.poule.qty + eggValue.dinde.qty;
+  document.getElementById('eggsCollectionValue').innerHTML = `
+    <div class="card warning"><h4>🥚 Œufs de poule collectés</h4><div class="value">${eggValue.poule.qty}</div><small>Valeur estimée : <strong>${fmtMoney(eggValue.poule.value)}</strong><br>Prix moyen : ${fmtMoney(eggValue.poule.avgPrice)}/œuf</small></div>
+    <div class="card warning"><h4>🥚 Œufs de dinde collectés</h4><div class="value">${eggValue.dinde.qty}</div><small>Valeur estimée : <strong>${fmtMoney(eggValue.dinde.value)}</strong><br>Prix moyen : ${fmtMoney(eggValue.dinde.avgPrice)}/œuf</small></div>
+    <div class="card success"><h4>📊 TOTAL collectes</h4><div class="value">${totalEggQty} œufs</div><small>Valeur totale : <strong>${fmtMoney(totalEggValue)}</strong></small></div>
+  `;
+}
+
+// ============ 📄 PDF BILAN ============
+function downloadBilanPDF() {
+  const r = totalSales(), d = totalExpenses(), p = totalEggLossValue();
+  const b = r - d - p;
+  const marge = r > 0 ? ((b/r)*100).toFixed(1) : '0';
+  const now = new Date();
+  const dateEdition = now.toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const heureEdition = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  const cats = {};
+  data.expenses.filter(e => isInPeriod(e.date)).forEach(e => cats[e.category] = (cats[e.category]||0) + e.amount);
+  const vs = {};
+  data.sales.filter(s => isInPeriod(s.date)).forEach(s => {
+    let k = s.type === 'oeuf' ? `Œufs ${s.species||'poule'}` : (s.type === 'poussin' ? 'Poussins' : (s.type === 'dindonneau' ? 'Dindonneaux' : typeLabel(s.type)));
+    vs[k] = (vs[k]||0) + s.qty*s.price;
+  });
+  const lo = {};
+  data.eggExits.filter(e => e.type === 'casse' && isInPeriod(e.date)).forEach(e => { lo[`${e.type} (${e.species})`] = (lo[`${e.type} (${e.species})`]||0) + (e.value||0); });
+  const consumption = getIngredientsConsumption();
+  const totalKgConsumed = consumption.reduce((s,c) => s + c.qty, 0);
+  const totalCostConsumed = consumption.reduce((s,c) => s + c.cost, 0);
+  const eggValue = getEggCollectionValue();
+  const totalEggValue = eggValue.poule.value + eggValue.dinde.value;
+  const totalEggQty = eggValue.poule.qty + eggValue.dinde.qty;
+  const periodLabel = document.getElementById('periodInfo').textContent.replace(/^[^\s]+\s/, '');
+  
+  const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Bilan - ${periodLabel}</title>
+<style>
+@page{size:A4;margin:15mm}*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Segoe UI',Tahoma,Arial,sans-serif;color:#1b1b1b;font-size:11pt;line-height:1.4}
+.header{background:linear-gradient(135deg,#2d6a4f,#1b4332);color:white;padding:20px;border-radius:8px;margin-bottom:20px}
+.header h1{font-size:22pt;margin-bottom:5px}.header .subtitle{font-size:11pt;opacity:0.9}
+.header .period{background:rgba(255,255,255,0.2);padding:8px 12px;border-radius:6px;margin-top:10px;display:inline-block;font-weight:500}
+.section{margin-bottom:18px;page-break-inside:avoid}.section h2{color:#1b4332;font-size:14pt;border-bottom:2px solid #d4a373;padding-bottom:4px;margin-bottom:10px}
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:15px}
+.stat-card{border:1px solid #e9ecef;border-left:4px solid #2d6a4f;padding:10px;border-radius:6px;background:#fff}
+.stat-card h4{font-size:9pt;color:#6c757d;text-transform:uppercase;margin-bottom:4px}
+.stat-card .value{font-size:16pt;font-weight:bold;color:#1b4332}
+.stat-card.success{border-left-color:#52b788}.stat-card.danger{border-left-color:#c1121f}.stat-card.accent{border-left-color:#d4a373}.stat-card.warning{border-left-color:#f4a261}
+table{width:100%;border-collapse:collapse;margin-bottom:10px;font-size:10pt}
+th{background:#2d6a4f;color:white;padding:8px;text-align:left;font-weight:500}
+td{padding:6px 8px;border-bottom:1px solid #e9ecef}tr:nth-child(even){background:#f8f9fa}
+.total-row{background:#e7f5ef !important;font-weight:bold}
+.footer{margin-top:30px;padding-top:15px;border-top:2px solid #d4a373;font-size:9pt;color:#6c757d;text-align:center}
+.no-data{text-align:center;padding:15px;color:#6c757d;font-style:italic}
+@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.header{background:#2d6a4f !important}th{background:#2d6a4f !important;color:white !important}}
+</style></head><body>
+<div class="header"><h1>🐔 Bilan - Élevage de Volaille</h1><div class="subtitle">Rapport financier et opérationnel</div><div class="period">📅 ${periodLabel}</div></div>
+<div class="section"><h2>📊 Synthèse financière</h2><div class="stats-grid">
+<div class="stat-card success"><h4>💰 Recettes</h4><div class="value">${fmtMoney(r)}</div></div>
+<div class="stat-card danger"><h4>💸 Dépenses</h4><div class="value">${fmtMoney(d)}</div></div>
+<div class="stat-card danger"><h4>📉 Pertes</h4><div class="value">${fmtMoney(p)}</div></div>
+<div class="stat-card ${b>=0?'success':'danger'}"><h4>📊 Bénéfice net</h4><div class="value">${fmtMoney(b)}</div></div>
+<div class="stat-card accent"><h4>📈 Marge</h4><div class="value">${marge}%</div></div>
+<div class="stat-card warning"><h4>🍽️ Coût aliment.</h4><div class="value">${fmtMoney(totalFeedCost())}</div></div>
+</div></div>
+<div class="section"><h2>💸 Répartition des dépenses</h2>${Object.keys(cats).length ? `<table><thead><tr><th>Catégorie</th><th>Montant</th><th>%</th></tr></thead><tbody>${Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<tr><td>${categoryLabel(k)}</td><td><strong>${fmtMoney(v)}</strong></td><td>${((v/d)*100).toFixed(1)}%</td></tr>`).join('')}<tr class="total-row"><td>TOTAL</td><td>${fmtMoney(d)}</td><td>100%</td></tr></tbody></table>`:'<p class="no-data">Aucune dépense</p>'}</div>
+<div class="section"><h2>💰 Répartition des ventes</h2>${Object.keys(vs).length ? `<table><thead><tr><th>Type</th><th>Montant</th><th>%</th></tr></thead><tbody>${Object.entries(vs).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<tr><td>${k}</td><td><strong>${fmtMoney(v)}</strong></td><td>${((v/r)*100).toFixed(1)}%</td></tr>`).join('')}<tr class="total-row"><td>TOTAL</td><td>${fmtMoney(r)}</td><td>100%</td></tr></tbody></table>`:'<p class="no-data">Aucune vente</p>'}</div>
+<div class="section"><h2>📉 Pertes</h2>${Object.keys(lo).length ? `<table><thead><tr><th>Type</th><th>Valeur</th></tr></thead><tbody>${Object.entries(lo).map(([k,v])=>`<tr><td>${k}</td><td><strong>${fmtMoney(v)}</strong></td></tr>`).join('')}<tr class="total-row"><td>TOTAL</td><td>${fmtMoney(p)}</td></tr></tbody></table>`:'<p class="no-data">Aucune perte</p>'}</div>
+<div class="section"><h2>🌾 Consommation d'aliments</h2>${consumption.length ? `<table><thead><tr><th>Ingrédient</th><th>Qté</th><th>Prix/kg</th><th>Montant</th><th>%</th></tr></thead><tbody>${consumption.map(c=>{const percent=totalKgConsumed>0?(c.qty/totalKgConsumed*100).toFixed(1):0;return `<tr><td><strong>${c.name}</strong></td><td>${fmt(c.qty)} kg</td><td>${fmtMoney(c.pricePerKg)}</td><td><strong>${fmtMoney(c.cost)}</strong></td><td>${percent}%</td></tr>`;}).join('')}<tr class="total-row"><td>TOTAL</td><td>${fmt(totalKgConsumed)} kg</td><td>-</td><td>${fmtMoney(totalCostConsumed)}</td><td>100%</td></tr></tbody></table>`:'<p class="no-data">Aucune consommation</p>'}</div>
+<div class="section"><h2>🥚 Valeur des collectes</h2><table><thead><tr><th>Espèce</th><th>Qté</th><th>Prix moyen</th><th>Valeur</th></tr></thead><tbody>
+<tr><td>Œufs de poule</td><td>${eggValue.poule.qty}</td><td>${fmtMoney(eggValue.poule.avgPrice)}</td><td><strong>${fmtMoney(eggValue.poule.value)}</strong></td></tr>
+<tr><td>Œufs de dinde</td><td>${eggValue.dinde.qty}</td><td>${fmtMoney(eggValue.dinde.avgPrice)}</td><td><strong>${fmtMoney(eggValue.dinde.value)}</strong></td></tr>
+<tr class="total-row"><td>TOTAL</td><td>${totalEggQty} œufs</td><td>-</td><td>${fmtMoney(totalEggValue)}</td></tr>
+</tbody></table></div>
+<div class="footer"><p>📄 Document généré le ${dateEdition} à ${heureEdition}</p><p>🐔 Application de Gestion d'Élevage de Volaille</p></div>
+</body></html>`;
+  
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) { alert('⚠️ Autorisez les popups pour ce site.'); return; }
+  printWindow.document.write(html);
+  printWindow.document.close();
+  printWindow.onload = () => { setTimeout(() => { printWindow.focus(); printWindow.print(); }, 300); };
+}
+
+// ============ EXPORT / IMPORT / RESET ============
+function exportData() {
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `elevage_${new Date().toISOString().slice(0,10)}.json`;
+  a.click(); URL.revokeObjectURL(url);
+}
+function importData(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const imp = JSON.parse(ev.target.result);
+      if (confirm('Remplacer toutes les données ?')) {
+        data = imp; save(); renderAll(); alert('✅ Import réussi !');
+      }
+    } catch(err) { alert('❌ Fichier invalide : ' + err.message); }
+  };
+  reader.readAsText(file); e.target.value = '';
+}
+function resetData() {
+  if (confirm('⚠️ Effacer TOUTES les données ?')) {
+    if (confirm('Vraiment sûr ? Pensez à exporter avant.')) {
+      data = { animals:[], sorties:[], eggs:[], eggExits:[], incubations:[], sales:[], expenses:[], conversions:[], sicknesses:[], initialCash:0, ingredients:[], rations:[], distributions:[] };
+      save(); renderAll();
+    }
+  }
+}
+
+// ============ INIT ============
+load();
+toggleSaleSpecies();
+updateStartSummary();
+renderAll();
+checkAuth();
+</script>
+</body>
+</html>
